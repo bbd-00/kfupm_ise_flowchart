@@ -867,7 +867,7 @@ function renderCriteria() {
   document.getElementById("critBody").innerHTML = safeCriteriaHTML(criteria.html || "");
   const d = criteria.updated ? new Date(criteria.updated + "T00:00:00Z") : null;
   document.getElementById("critDate").textContent = d && !isNaN(d) ?
-    "Copied from the ISE website (checked weekly) · " + d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", timeZone:"UTC" }) : "From the ISE website";
+    "From the ISE website · Last updated " + d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", timeZone:"UTC" }) : "From the ISE website";
   document.getElementById("critSrc").href = criteria.source || document.querySelector(".note a").href;
 }
 function loadLatestCriteria() {
