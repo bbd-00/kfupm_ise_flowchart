@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ISE Degree Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#111; --muted:#444; --kfupm:#00843d; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family: Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .page { max-width: 1350px; margin: 0 auto; padding: 16px; }
+  header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding: 8px 40px 0; }
+  h1 { margin:0; font-size: clamp(18px, 2.6vw, 32px); font-weight:900; letter-spacing:-0.3px; }
+  .subtitle { font-size: clamp(14px, 2vw, 27px); font-weight:400; margin-top:2px; }
+  .logo { height:72px; width:auto; flex:none; max-width:100%; }
+  #plan { width:100%; height:auto; display:block; }
+  .legend svg { flex:none; }
+  .legend { display:flex; flex-wrap:wrap; align-items:center; gap: 12px 48px; padding: 4px 48px 16px; font-size:14px; }
+  .legend .key { font-weight:900; font-size:18px; line-height:0.9; }
+  .legend .item { display:flex; align-items:center; gap:10px; }
+  .legend .note { margin-left:auto; }
+  .legend .note a { color:#86323e; font-weight:600; text-decoration:underline; text-underline-offset:2px; }
+  .legend .note a:hover { color:#5e1f2b; }
+  .toolbar { display:flex; align-items:center; gap:12px; padding: 6px 40px 8px; font-size:13px; color:#444; flex-wrap:wrap; }
+  .toolbar .hint { flex:1; min-width:220px; }
+  .toolbar .sw { display:inline-block; width:18px; height:3px; vertical-align:middle; margin:0 3px 0 6px; border-radius:2px; }
+  .toolbar button { font:inherit; font-weight:600; padding:7px 14px; border:1px solid #bbb; background:#fff; color:#111; border-radius:8px; cursor:pointer; }
+  .toolbar button:hover { background:#f2f2f2; }
+  .savemenu { position:relative; }
+  .menu { position:absolute; right:0; top:calc(100% + 6px); z-index:30; min-width:290px; max-width:calc(100vw - 32px); padding:6px;
+          background:#fff; border:1px solid #ccc; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.18); }
+  .menu[hidden] { display:none; }
+  .toolbar .menu button { display:block; width:100%; text-align:left; border:0; border-radius:7px; padding:9px 11px; background:none; }
+  .toolbar .menu button:hover, .toolbar .menu button:focus-visible { background:#f2f0f0; }
+  .menu b { display:block; font-weight:700; }
+  .menu span { display:block; font-weight:400; color:#666; font-size:12px; margin-top:1px; }
+  .chip { display:inline-block; font-size:12px; font-weight:600; line-height:1.6; padding:0 9px; border-radius:999px; color:#fff; background:var(--t, #86323e); }
+  .chip.out { background:#fff; color:#444; border:1px solid #bbb; }
+  .learn { margin:6px 0 4px; font-style:italic; }
+  .card .learn { display:block; font-size:12.5px; color:#333; margin:5px 0 0; line-height:1.4; }
+  .card .chip { font-size:11px; margin-top:5px; }
+  .info { margin: 0 40px 8px; padding:10px 14px; border-left:4px solid #86323e; background:#f6f4f4; border-radius:6px; font-size:14px; line-height:1.5; }
+  .info[hidden] { display:none; }
+  .info b.code { font-size:16px; }
+  .info .muted { color:#555; }
+  .course { cursor:pointer; transition: opacity .15s; }
+  .course:focus { outline:none; }
+  .course:focus-visible .body { stroke:#111; stroke-width:2.5; }
+  .link { transition: opacity .15s; }
+  #plan.focus .dim { opacity:.14; }
+  #plan.focus .link.pre  { stroke:#1f6fb2; stroke-width:2.2; marker-end:url(#arrowPre); }
+  #plan.focus .link.post { stroke:#d9731a; stroke-width:2.2; marker-end:url(#arrowPost); }
+  #plan.focus .course.sel  .body { stroke:#111; stroke-width:3; }
+  #plan.focus .course.pre  .body { stroke:#1f6fb2; stroke-width:2.5; }
+  #plan.focus .course.post .body { stroke:#d9731a; stroke-width:2.5; }
+  .tip { position:fixed; z-index:10; pointer-events:none; background:#1f1d1d; color:#fff; padding:8px 11px; border-radius:8px;
+         font-size:13px; line-height:1.4; max-width:280px; box-shadow:0 4px 14px rgba(0,0,0,.25); opacity:0; transition:opacity .1s; }
+  .tip.on { opacity:1; }
+  .tip .t { font-weight:700; }
+  .tip .m { color:#cfcfcf; font-size:12px; }
+  .cats { display:flex; flex-wrap:wrap; gap:6px 18px; padding: 0 48px 14px; font-size:13px; align-items:center; }
+  .cats .lbl { font-weight:900; font-size:14px; margin-right:6px; }
+  .cats span.c { display:inline-flex; align-items:center; gap:6px; }
+  .cats i { width:22px; height:12px; border-radius:4px; display:inline-block; }
+  html:not(.js) .toolbar { display:none; }
+  .info { position:relative; }
+  .info .x { display:none; position:absolute; top:4px; right:8px; border:0; background:none; font-size:24px; line-height:1; cursor:pointer; color:#444; padding:4px 6px; }
+  .views { display:inline-flex; border:1px solid #bbb; border-radius:8px; overflow:hidden; }
+  .toolbar .views button { border:0; border-radius:0; }
+  .toolbar .views button[aria-pressed="true"] { background:#1f1d1d; color:#fff; }
+  .swipe { display:none; font-size:12px; color:#666; padding:0 0 4px; }
+  .listview { display:none; padding: 0 40px 12px; }
+  body.list .chartwrap, body.list .swipe, body.list .legend { display:none !important; }
+  body.list .listview { display:block; }
+  .listview .sem { margin: 10px 0 18px; }
+  .listview h3 { margin:0 0 6px; font-size:15px; display:flex; justify-content:space-between; align-items:baseline;
+                 border-bottom:2px solid #86323e; padding-bottom:4px; }
+  .listview h3 .yr { color:#86323e; text-transform:uppercase; letter-spacing:1px; font-size:12px; margin-right:6px; }
+  .listview h3 .tot { font-size:13px; font-weight:500; color:#555; }
+  .listview .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:8px 14px; }
+  .card { display:grid; grid-template-columns:6px 1fr; background:#f1f2f6; border-radius:10px; overflow:hidden; cursor:pointer;
+          border:0; padding:0; text-align:left; font:inherit; color:inherit; width:100%; }
+  .card:hover { background:#e7e9f0; }
+  .card:focus-visible { outline:2px solid #111; }
+  .card .bar { background:var(--c); }
+  .card .in, .card .ttl, .card .rel { display:block; }
+  .card .in { padding:9px 12px 10px; }
+  .card .top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .card .code { font-weight:800; font-size:15px; }
+  .card .cr { font-size:12px; color:#555; white-space:nowrap; }
+  .card .ttl { font-size:14px; margin-top:1px; }
+  .card .rel { font-size:12.5px; color:#444; margin-top:5px; line-height:1.45; }
+  .card .rel b { color:#111; font-weight:600; }
+  .card .tag { display:inline-block; font-size:11px; border:1px dashed #111; border-radius:6px; padding:0 5px; margin-left:4px; }
+  @media (max-width: 900px) {
+    .chartwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -16px; padding:0 16px 6px; }
+    #plan { min-width:1050px; }
+    .swipe { display:block; }
+    .info { position:fixed; left:8px; right:8px; bottom:8px; margin:0; z-index:20; background:#fff;
+            box-shadow:0 6px 24px rgba(0,0,0,.28); padding-right:40px; max-height:45vh; overflow:auto; font-size:13.5px; }
+    .info .x { display:block; }
+    .listview { padding: 0 0 12px; }
+    .toolbar button { padding:9px 14px; }
+  }
+  @media print {
+    /* One page, A4 landscape (scales up cleanly to A3); interactive state is ignored */
+    /* margin:0 leaves the browser no room for its date / URL / page-number header and footer;
+       the white border is added as page padding instead */
+    @page { size: A4 landscape; margin: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { width:297mm; margin:0; }
+    .page { max-width:none; padding:7mm; }
+    header { flex-direction:row !important; align-items:center !important; padding:0 2mm 2mm !important; }
+    h1 { font-size:17pt !important; }
+    .subtitle { font-size:12pt !important; }
+    .logo { height:15mm !important; }
+    #plan { width:100% !important; height:152mm !important; }
+    .legend { padding:2mm 4mm 1mm !important; gap:2mm 10mm !important; font-size:8.5pt !important; flex-wrap:nowrap !important; }
+    .legend .key { font-size:10pt !important; }
+    .legend .note { flex-basis:auto !important; margin-left:auto !important; }
+    .cats { padding:0 4mm !important; font-size:8pt !important; gap:1mm 3.5mm !important; flex-wrap:nowrap !important; white-space:nowrap; }
+    .toolbar, .info, .tip, .swipe, .listview { display:none !important; }
+    .chartwrap, body.list .chartwrap { display:block !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
+    .legend, body.list .legend { display:flex !important; }
+    #plan { min-width:0 !important; }
+    #plan.focus .dim { opacity:1 !important; }
+    #plan .link { stroke:#111 !important; stroke-width:1.2 !important; marker-end:url(#arrow) !important; }
+    #plan .course .body { stroke:none !important; }
+  }
+  @media (max-width: 760px) {
+    header { padding: 0; flex-direction: column; }
+    .logo { height:56px; }
+    .legend { padding: 4px 0 16px; gap: 10px 24px; }
+    .legend .note { margin-left:0; }
+    .toolbar { padding: 6px 0 8px; } .info { margin: 0 0 8px; } .cats { padding: 0 0 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1>Industrial and Systems Engineering (ISE) - Degree Plan</h1>
+      <div class="subtitle">Internship Option · <span id="progTotal">128</span> credit hours</div>
+    </div>
+    <img class="logo" alt="King Fahd University of Petroleum &amp; Minerals" src="data:image/png;base64,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">
+  </header>
+
+  <div class="toolbar">
+    <div class="hint">Click a course to trace what it requires<span class="sw" style="background:#1f6fb2"></span>and what it unlocks<span class="sw" style="background:#d9731a"></span>. Click again, click empty space or press Esc to clear.</div>
+    <div class="views" role="group" aria-label="View">
+      <button type="button" id="vChart" aria-pressed="true">Chart</button>
+      <button type="button" id="vList" aria-pressed="false">List</button>
+    </div>
+    <div class="savemenu">
+      <button type="button" id="saveBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="saveMenu">Print / Save ▾</button>
+      <div class="menu" id="saveMenu" role="menu" hidden>
+        <button type="button" role="menuitem" id="printBtn"><b>Print or save as PDF</b><span>One A4 landscape page · choose “Save as PDF” in the print dialog</span></button>
+        <button type="button" role="menuitem" id="svgBtn"><b>Save as SVG</b><span>Vector image for slides, posters and documents</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="info" id="info" hidden aria-live="polite"></div>
+
+  <div class="swipe">Swipe sideways to see all semesters →</div>
+  <div class="chartwrap" id="chartwrap">
+  <svg id="plan" viewBox="50 105 1250 802" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ISE degree plan flow chart"><!-- pre-drawn copy: regenerated automatically; edit the data in the script, not here --><defs><clipPath id="round"><rect x="57" y="111" width="1234" height="791" rx="22"></rect></clipPath><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L10,5 L0,9 z" fill="#111"></path></marker><marker id="arrowPre" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L10,5 L0,9 z" fill="#1f6fb2"></path></marker><marker id="arrowPost" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L10,5 L0,9 z" fill="#d9731a"></path></marker></defs><g clip-path="url(#round)"><rect x="57" y="111" width="136" height="791" fill="#d0d0d0"></rect><rect x="57" y="156" width="136" height="36" fill="#86323e"></rect><text x="125" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">First Semester</text><rect x="193" y="111" width="138" height="791" fill="#e2e3e5"></rect><rect x="193" y="156" width="138" height="36" fill="#86323e"></rect><text x="262" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">Second Semester</text><rect x="331" y="111" width="137" height="791" fill="#d0d0d0"></rect><rect x="331" y="156" width="137" height="36" fill="#86323e"></rect><text x="399.5" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">First Semester</text><rect x="468" y="111" width="137" height="791" fill="#e2e3e5"></rect><rect x="468" y="156" width="137" height="36" fill="#86323e"></rect><text x="536.5" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">Second Semester</text><rect x="605" y="111" width="137" height="791" fill="#d0d0d0"></rect><rect x="605" y="156" width="137" height="36" fill="#86323e"></rect><text x="673.5" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">First Semester</text><rect x="742" y="111" width="138" height="791" fill="#e2e3e5"></rect><rect x="742" y="156" width="138" height="36" fill="#86323e"></rect><text x="811" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">Second Semester</text><rect x="880" y="111" width="136" height="791" fill="#a48786"></rect><rect x="880" y="156" width="136" height="36" fill="#86323e"></rect><text x="948" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">Summer</text><rect x="1016" y="111" width="138" height="791" fill="#e2e3e5"></rect><rect x="1016" y="156" width="138" height="36" fill="#86323e"></rect><text x="1085" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">First Semester</text><rect x="1154" y="111" width="137" height="791" fill="#d0d0d0"></rect><rect x="1154" y="156" width="137" height="36" fill="#86323e"></rect><text x="1222.5" y="180" text-anchor="middle" fill="#fff" font-size="15" font-weight="500">Second Semester</text><rect x="57" y="111" width="1234" height="45" fill="#1f1d1d"></rect><rect x="57" y="862" width="1234" height="40" fill="#1f1d1d"></rect><text x="125" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">18</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="193" y1="870" x2="193" y2="894" stroke="#555"></line><text x="262" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">18</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="331" y1="870" x2="331" y2="894" stroke="#555"></line><text x="399.5" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">16</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="468" y1="870" x2="468" y2="894" stroke="#555"></line><text x="536.5" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">18</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="605" y1="870" x2="605" y2="894" stroke="#555"></line><text x="673.5" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">17</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="742" y1="870" x2="742" y2="894" stroke="#555"></line><text x="811" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">17</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="880" y1="870" x2="880" y2="894" stroke="#555"></line><text x="948" y="888" text-anchor="middle" fill="#fff" font-size="15">—</text><line x1="1016" y1="870" x2="1016" y2="894" stroke="#555"></line><text x="1085" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">6</tspan><tspan fill="#cfcfcf"> credits</tspan></text><line x1="1154" y1="870" x2="1154" y2="894" stroke="#555"></line><text x="1222.5" y="888" text-anchor="middle" fill="#fff" font-size="15"><tspan font-weight="700" font-size="17">18</tspan><tspan fill="#cfcfcf"> credits</tspan></text><text x="194" y="141" text-anchor="middle" fill="#fff" font-size="19" font-weight="700" letter-spacing="4">FRESHMAN<tspan font-size="13" font-weight="400" letter-spacing="0.5" fill="#bdbdbd" dx="10">36 cr</tspan></text><text x="468" y="141" text-anchor="middle" fill="#fff" font-size="19" font-weight="700" letter-spacing="4">SOPHOMORE<tspan font-size="13" font-weight="400" letter-spacing="0.5" fill="#bdbdbd" dx="10">34 cr</tspan></text><text x="742.5" y="141" text-anchor="middle" fill="#fff" font-size="19" font-weight="700" letter-spacing="4">JUNIOR<tspan font-size="13" font-weight="400" letter-spacing="0.5" fill="#bdbdbd" dx="10">34 cr</tspan></text><text x="1153.5" y="141" text-anchor="middle" fill="#fff" font-size="19" font-weight="700" letter-spacing="4">SENIOR<tspan font-size="13" font-weight="400" letter-spacing="0.5" fill="#bdbdbd" dx="10">24 cr</tspan></text></g><g fill="none" stroke="#111" stroke-width="1.2"><path d="M303,240 L353.5,240 L445.5,240 L493.5,240" class="link" marker-end="url(#arrow)" data-from="ias111" data-to="ias212"></path><path d="M166,322 L219,322" class="link" marker-end="url(#arrow)" data-from="eng101" data-to="eng102"></path><path d="M303,322 L356.5,322" class="link" marker-end="url(#arrow)" data-from="eng102" data-to="eng214"></path><path d="M440.5,313 C465.5,313 465.5,292 490.5,292 L582.5,292 C605,292 605,278 627.5,278 L719.5,278 C743.75,278 743.75,240 768,240" class="link" marker-end="url(#arrow)" data-from="eng214" data-to="cgs392"></path><path d="M440.5,322 C465.5,322 465.5,345 490.5,345 L582.5,345 C605,345 605,377 627.5,377 L719.5,377 C743.75,377 743.75,399.5 768,399.5" class="link" marker-end="url(#arrow)" data-from="eng214" data-to="ise391"></path><path d="M440.5,331 C465.5,331 465.5,356 490.5,356 L582.5,356 C605,356 605,391 627.5,391 L719.5,391 C742.25,391 742.25,442 765,442 L857,442 C949.5,442 949.5,486 1042,486" class="link" marker-end="url(#arrow)" data-from="eng214" data-to="ise398"></path><path d="M166,572.5 C192.5,572.5 192.5,568 219,568" class="link" marker-end="url(#arrow)" data-from="math101" data-to="math102"></path><path d="M166,563.5 C192.5,563.5 192.5,486 219,486" class="link" marker-end="url(#arrow)" data-from="math101" data-to="ics104" stroke-dasharray="4 3"></path><path d="M166,650 L219,650" class="link" marker-end="url(#arrow)" data-from="phys101" data-to="phys102"></path><path d="M303,563.5 C329.75,563.5 329.75,568 356.5,568" class="link" marker-end="url(#arrow)" data-from="math102" data-to="math201"></path><path d="M303,572.5 C328.25,572.5 328.25,612 353.5,612 L445.5,612 C469.5,612 469.5,650 493.5,650" class="link" marker-end="url(#arrow)" data-from="math102" data-to="math208"></path><path d="M303,554.5 C329.75,554.5 329.75,486 356.5,486" class="link" marker-end="url(#arrow)" data-from="math102" data-to="ise205"></path><path d="M303,545.5 C329.75,545.5 329.75,408.5 356.5,408.5" class="link" marker-end="url(#arrow)" data-from="math102" data-to="ise291"></path><path d="M303,581.5 C328.25,581.5 328.25,655 353.5,655 L445.5,655 C469.5,655 469.5,727.5 493.5,727.5" class="link" marker-end="url(#arrow)" data-from="math102" data-to="ee236"></path><path d="M303,590.5 C329.75,590.5 329.75,723 356.5,723" class="link" marker-end="url(#arrow)" data-from="math102" data-to="mse201"></path><path d="M303,645.5 C328.25,645.5 328.25,687 353.5,687 L445.5,687 C469.5,687 469.5,736.5 493.5,736.5" class="link" marker-end="url(#arrow)" data-from="phys102" data-to="ee236"></path><path d="M303,654.5 C329.75,654.5 329.75,732 356.5,732" class="link" marker-end="url(#arrow)" data-from="phys102" data-to="mse201"></path><path d="M166,732 C191,732 191,737 216,737 L308,737 C332.25,737 332.25,741 356.5,741" class="link" marker-end="url(#arrow)" data-from="chem101" data-to="mse201"></path><path d="M303,481.5 C329.75,481.5 329.75,399.5 356.5,399.5" class="link" marker-end="url(#arrow)" data-from="ics104" data-to="ise291"></path><path d="M303,490.5 C328.25,490.5 328.25,524 353.5,524 L445.5,524 C468,524 468,484 490.5,484 L582.5,484 C606.5,484 606.5,481.5 630.5,481.5" class="link" marker-end="url(#arrow)" data-from="ics104" data-to="cie301"></path><path d="M440.5,568 C465.5,568 465.5,529 490.5,529 L582.5,529 C606.5,529 606.5,490.5 630.5,490.5" class="link" marker-end="url(#arrow)" data-from="math201" data-to="cie301"></path><path d="M303,814 C328.25,814 328.25,816 353.5,816 L445.5,816 C469.5,816 469.5,818.5 493.5,818.5" class="link" marker-end="url(#arrow)" data-from="ce101" data-to="me322"></path><path d="M440.5,732 C467,732 467,809.5 493.5,809.5" class="link" marker-end="url(#arrow)" data-from="mse201" data-to="me322"></path><path d="M440.5,404 L493.5,404" class="link" marker-end="url(#arrow)" data-from="ise291" data-to="coe292"></path><path d="M440.5,499.5 C467,499.5 467,568 493.5,568" class="link" marker-end="url(#arrow)" data-from="ise205" data-to="ise315"></path><path d="M440.5,472.5 C465.5,472.5 465.5,454 490.5,454 L582.5,454 C605,454 605,427 627.5,427 L719.5,427 C743.75,427 743.75,408.5 768,408.5" class="link" marker-end="url(#arrow)" data-from="ise205" data-to="ise391"></path><path d="M440.5,481.5 C465.5,481.5 465.5,474 490.5,474 L582.5,474 C605,474 605,448 627.5,448 L719.5,448 C743.75,448 743.75,486 768,486" class="link" marker-end="url(#arrow)" data-from="ise205" data-to="ise324"></path><path d="M440.5,490.5 C465.5,490.5 465.5,512 490.5,512 L582.5,512 C605,512 605,530 627.5,530 L719.5,530 C743.75,530 743.75,563.5 768,563.5" class="link" marker-end="url(#arrow)" data-from="ise205" data-to="ise402"></path><path d="M577.5,645.5 C604,645.5 604,650 630.5,650" class="link" marker-end="url(#arrow)" data-from="math208" data-to="ise303"></path><path d="M577.5,654.5 C604,654.5 604,727.5 630.5,727.5" class="link" marker-end="url(#arrow)" data-from="math208" data-to="cie305"></path><path d="M577.5,732 C604,732 604,736.5 630.5,736.5" class="link" marker-end="url(#arrow)" data-from="ee236" data-to="cie305"></path><path d="M577.5,563.5 C604,563.5 604,568 630.5,568" class="link" marker-end="url(#arrow)" data-from="ise315" data-to="ise320" stroke-dasharray="4 3"></path><path d="M577.5,572.5 C602.5,572.5 602.5,606 627.5,606 L719.5,606 L765,606 L857,606 C948,606 948,569 1039,569 L1131,569 C1155.25,569 1155.25,568 1179.5,568" class="link" marker-end="url(#arrow)" data-from="ise315" data-to="ise405"></path><path d="M714.5,645.5 C741.25,645.5 741.25,572.5 768,572.5" class="link" marker-end="url(#arrow)" data-from="ise303" data-to="ise402"></path><path d="M714.5,654.5 C741.25,654.5 741.25,650 768,650" class="link" marker-end="url(#arrow)" data-from="ise303" data-to="ise321"></path><path d="M714.5,663.5 C739.75,663.5 739.75,688 765,688 L857,688 C948,688 948,653 1039,653 L1131,653 C1155.25,653 1155.25,650 1179.5,650" class="link" marker-end="url(#arrow)" data-from="ise303" data-to="ise422"></path><path d="M714.5,636.5 C739.75,636.5 739.75,530 765,530 L857,530 C949.5,530 949.5,495 1042,495" class="link" marker-end="url(#arrow)" data-from="ise303" data-to="ise398"></path><path d="M852,408.5 C947,408.5 947,477 1042,477" class="link" marker-end="url(#arrow)" data-from="ise391" data-to="ise398"></path><path d="M852,399.5 C945.5,399.5 945.5,409 1039,409 L1131,409 C1155.25,409 1155.25,413 1179.5,413" class="link" marker-end="url(#arrow)" data-from="ise391" data-to="ise412"></path><path d="M714.5,322 C739.75,322 739.75,339 765,339 L857,339 C948,339 948,387 1039,387 L1131,387 C1155.25,387 1155.25,404 1179.5,404" class="link" marker-end="url(#arrow)" data-from="ise499" data-to="ise412"></path><path d="M1126,322 C1152.75,322 1152.75,395 1179.5,395" class="link" marker-end="url(#arrow)" data-from="ise411" data-to="ise412"></path></g><g><g class="course" data-id="ias121" tabindex="0" role="button" aria-label="IAS 121: Language Foundation, 2 credits"><rect x="85" y="216" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="214" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,234 V224 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V234 Z" fill="#678e3a"></path><text x="125" y="229" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">IAS</text><text x="125" y="256" text-anchor="middle" fill="#111" font-size="18" font-weight="700">121</text><circle cx="162" cy="214" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="217.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="eng101" tabindex="0" role="button" aria-label="ENG 101: Introduction to Academic Discourse, 3 credits"><rect x="85" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,316 V306 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V316 Z" fill="#678e3a"></path><text x="125" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ENG</text><text x="125" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="162" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="math101" tabindex="0" role="button" aria-label="MATH 101: Calculus I, 4 credits"><rect x="85" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,562 V552 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V562 Z" fill="#2d327f"></path><text x="125" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">MATH</text><text x="125" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="162" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">4</text></g><g class="course" data-id="phys101" tabindex="0" role="button" aria-label="PHYS 101: General Physics I, 4 credits"><rect x="85" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,644 V634 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V644 Z" fill="#2d327f"></path><text x="125" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">PHYS</text><text x="125" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="162" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">4</text></g><g class="course" data-id="pe101" tabindex="0" role="button" aria-label="PE 101: Physical Education, 1 credits"><rect x="85" y="790" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="788" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,808 V798 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V808 Z" fill="#678e3a"></path><text x="125" y="803" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">PE</text><text x="125" y="830" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="162" cy="788" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="791.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">1</text></g><g class="course" data-id="chem101" tabindex="0" role="button" aria-label="CHEM 101: Principles of Chemical Science I, 4 credits"><rect x="85" y="708" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="84" y="706" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M84,726 V716 a10,10 0 0 1 10,-10 H156 a10,10 0 0 1 10,10 V726 Z" fill="#2d327f"></path><text x="125" y="721" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">CHEM</text><text x="125" y="748" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="162" cy="706" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="162" y="709.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">4</text></g><g class="course" data-id="ias111" tabindex="0" role="button" aria-label="IAS 111: Belief and its Consequences, 2 credits"><rect x="222" y="216" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="214" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,234 V224 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V234 Z" fill="#678e3a"></path><text x="262" y="229" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">IAS</text><text x="262" y="256" text-anchor="middle" fill="#111" font-size="18" font-weight="700">111</text><circle cx="299" cy="214" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="217.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="eng102" tabindex="0" role="button" aria-label="ENG 102: Introduction to Argument Writing, 3 credits"><rect x="222" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,316 V306 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V316 Z" fill="#678e3a"></path><text x="262" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ENG</text><text x="262" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">102</text><circle cx="299" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="math102" tabindex="0" role="button" aria-label="MATH 102: Calculus II, 4 credits"><rect x="222" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,562 V552 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V562 Z" fill="#2d327f"></path><text x="262" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">MATH</text><text x="262" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">102</text><circle cx="299" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">4</text></g><g class="course" data-id="phys102" tabindex="0" role="button" aria-label="PHYS 102: General Physics II, 4 credits"><rect x="222" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,644 V634 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V644 Z" fill="#2d327f"></path><text x="262" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">PHYS</text><text x="262" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">102</text><circle cx="299" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">4</text></g><g class="course" data-id="ics104" tabindex="0" role="button" aria-label="ICS 104: Introduction to Programming in Python and C, 3 credits"><rect x="222" y="462" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="460" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,480 V470 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V480 Z" fill="#346d80"></path><text x="262" y="475" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ICS</text><text x="262" y="502" text-anchor="middle" fill="#111" font-size="18" font-weight="700">104</text><circle cx="299" cy="460" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="463.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ce101" tabindex="0" role="button" aria-label="CE 101: Engineering Graphics, 2 credits"><rect x="222" y="790" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="221" y="788" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M221,808 V798 a10,10 0 0 1 10,-10 H293 a10,10 0 0 1 10,10 V808 Z" fill="#8f7025"></path><text x="262" y="803" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">CE</text><text x="262" y="830" text-anchor="middle" fill="#111" font-size="18" font-weight="700">101</text><circle cx="299" cy="788" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="299" y="791.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="eng214" tabindex="0" role="button" aria-label="ENG 214: Academic &amp; Professional Communication, 3 credits"><rect x="359.5" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="358.5" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M358.5,316 V306 a10,10 0 0 1 10,-10 H430.5 a10,10 0 0 1 10,10 V316 Z" fill="#678e3a"></path><text x="399.5" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ENG</text><text x="399.5" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">214</text><circle cx="436.5" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise205" tabindex="0" role="button" aria-label="ISE 205: Engineering Probability and Statistics, 3 credits"><rect x="359.5" y="462" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="358.5" y="460" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M358.5,480 V470 a10,10 0 0 1 10,-10 H430.5 a10,10 0 0 1 10,10 V480 Z" fill="#86323e"></path><text x="399.5" y="475" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="399.5" y="502" text-anchor="middle" fill="#111" font-size="18" font-weight="700">205</text><circle cx="436.5" cy="460" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="463.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="math201" tabindex="0" role="button" aria-label="MATH 201: Calculus III, 3 credits"><rect x="359.5" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="358.5" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M358.5,562 V552 a10,10 0 0 1 10,-10 H430.5 a10,10 0 0 1 10,10 V562 Z" fill="#2d327f"></path><text x="399.5" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">MATH</text><text x="399.5" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">201</text><circle cx="436.5" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise291" tabindex="0" role="button" aria-label="ISE 291: Introduction to Data Science, 3 credits"><rect x="359.5" y="380" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="358.5" y="378" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M358.5,398 V388 a10,10 0 0 1 10,-10 H430.5 a10,10 0 0 1 10,10 V398 Z" fill="#346d80"></path><text x="399.5" y="393" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="399.5" y="420" text-anchor="middle" fill="#111" font-size="18" font-weight="700">291</text><circle cx="436.5" cy="378" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="381.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="mse201" tabindex="0" role="button" aria-label="MSE 201/202: Introduction to Materials, 4 credits"><rect x="359.5" y="701" width="82" height="66" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="358.5" y="699" width="82" height="66" rx="11" fill="#bec2d6"></rect><path d="M358.5,743 H440.5 V754 a11,11 0 0 1 -11,11 H369.5 a11,11 0 0 1 -11,-11 Z" fill="#808598"></path><path d="M358.5,719 V709 a10,10 0 0 1 10,-10 H430.5 a10,10 0 0 1 10,10 V719 Z" fill="#8f7025"></path><text x="399.5" y="714" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">MSE</text><text x="399.5" y="738" text-anchor="middle" fill="#111" font-size="16" font-weight="700">201</text><text x="399.5" y="760" text-anchor="middle" fill="#111" font-size="16" font-weight="700">202</text><circle cx="436.5" cy="743" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="746.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">1</text><circle cx="436.5" cy="699" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="436.5" y="702.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ias212" tabindex="0" role="button" aria-label="IAS 212: Professional Ethics and Governance, 2 credits"><rect x="496.5" y="216" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="214" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M495.5,234 V224 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V234 Z" fill="#678e3a"></path><text x="536.5" y="229" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">IAS</text><text x="536.5" y="256" text-anchor="middle" fill="#111" font-size="18" font-weight="700">212</text><circle cx="573.5" cy="214" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="217.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="ise315" tabindex="0" role="button" aria-label="ISE 315: Engineering Statistics, 3 credits"><rect x="496.5" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M495.5,562 V552 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V562 Z" fill="#86323e"></path><text x="536.5" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="536.5" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">315</text><circle cx="573.5" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="math208" tabindex="0" role="button" aria-label="MATH 208: Differential Equations and Linear Algebra, 3 credits"><rect x="496.5" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M495.5,644 V634 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V644 Z" fill="#2d327f"></path><text x="536.5" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">MATH</text><text x="536.5" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">208</text><circle cx="573.5" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ee236" tabindex="0" role="button" aria-label="EE 236: Electronic Circuits (Non-EE students), 3 credits"><rect x="496.5" y="708" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="706" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M495.5,726 V716 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V726 Z" fill="#8f7025"></path><text x="536.5" y="721" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">EE</text><text x="536.5" y="748" text-anchor="middle" fill="#111" font-size="18" font-weight="700">236</text><circle cx="573.5" cy="706" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="709.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="coe292" tabindex="0" role="button" aria-label="COE 292: Introduction to Artificial Intelligence, 3 credits"><rect x="496.5" y="380" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="378" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M495.5,398 V388 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V398 Z" fill="#346d80"></path><text x="536.5" y="393" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">COE</text><text x="536.5" y="420" text-anchor="middle" fill="#111" font-size="18" font-weight="700">292</text><circle cx="573.5" cy="378" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="381.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="me322" tabindex="0" role="button" aria-label="ME 322/323: Manufacturing Processes, 4 credits"><rect x="496.5" y="783" width="82" height="66" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="495.5" y="781" width="82" height="66" rx="11" fill="#bec2d6"></rect><path d="M495.5,825 H577.5 V836 a11,11 0 0 1 -11,11 H506.5 a11,11 0 0 1 -11,-11 Z" fill="#808598"></path><path d="M495.5,801 V791 a10,10 0 0 1 10,-10 H567.5 a10,10 0 0 1 10,10 V801 Z" fill="#8f7025"></path><text x="536.5" y="796" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ME</text><text x="536.5" y="820" text-anchor="middle" fill="#111" font-size="16" font-weight="700">322</text><text x="536.5" y="842" text-anchor="middle" fill="#111" font-size="16" font-weight="700">323</text><circle cx="573.5" cy="825" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="828.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">1</text><circle cx="573.5" cy="781" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="573.5" y="784.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="iasxxx" tabindex="0" role="button" aria-label="IAS xxx: Islamic/Arabic Elective, 2 credits"><rect x="633.5" y="216" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="214" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,234 V224 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V234 Z" fill="#678e3a"></path><text x="673.5" y="229" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">IAS</text><text x="673.5" y="256" text-anchor="middle" fill="#111" font-size="18" font-weight="700">xxx</text><circle cx="710.5" cy="214" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="217.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="xexxx" tabindex="0" role="button" aria-label="XE xxx: Technical Elective, 3 credits"><rect x="633.5" y="790" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="788" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,808 V798 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V808 Z" fill="#a0522b"></path><text x="673.5" y="803" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">XE</text><text x="673.5" y="830" text-anchor="middle" fill="#111" font-size="18" font-weight="700">xxx</text><circle cx="710.5" cy="788" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="791.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise303" tabindex="0" role="button" aria-label="ISE 303: Operation Research I, 3 credits"><rect x="633.5" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,644 V634 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V644 Z" fill="#86323e"></path><text x="673.5" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="673.5" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">303</text><circle cx="710.5" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise320" tabindex="0" role="button" aria-label="ISE 320: Quality Control and Industrial Statistics, 3 credits"><rect x="633.5" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,562 V552 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V562 Z" fill="#86323e"></path><text x="673.5" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="673.5" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">320</text><circle cx="710.5" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="cie301" tabindex="0" role="button" aria-label="CIE 301: Numerical Methods, 3 credits"><rect x="633.5" y="462" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="460" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,480 V470 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V480 Z" fill="#8f7025"></path><text x="673.5" y="475" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">CIE</text><text x="673.5" y="502" text-anchor="middle" fill="#111" font-size="18" font-weight="700">301</text><circle cx="710.5" cy="460" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="463.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="cie305" tabindex="0" role="button" aria-label="CIE 305: Linear Control Systems, 3 credits"><rect x="633.5" y="708" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="706" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,726 V716 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V726 Z" fill="#8f7025"></path><text x="673.5" y="721" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">CIE</text><text x="673.5" y="748" text-anchor="middle" fill="#111" font-size="18" font-weight="700">305</text><circle cx="710.5" cy="706" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="709.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise499" tabindex="0" role="button" aria-label="ISE 499: Seminars, 0 credits"><rect x="626.5" y="290" width="94" height="64" rx="14" fill="#fff" stroke="#111" stroke-dasharray="3 3" stroke-width="1.2"></rect><rect x="633.5" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="632.5" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M632.5,316 V306 a10,10 0 0 1 10,-10 H704.5 a10,10 0 0 1 10,10 V316 Z" fill="#86323e"></path><text x="673.5" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="673.5" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">499</text><circle cx="710.5" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="710.5" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">0</text></g><g class="course" data-id="cgs392" tabindex="0" role="button" aria-label="CGS 392: Career Essentials, 1 credits"><rect x="771" y="216" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="214" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,234 V224 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V234 Z" fill="#678e3a"></path><text x="811" y="229" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">CGS</text><text x="811" y="256" text-anchor="middle" fill="#111" font-size="18" font-weight="700">392</text><circle cx="848" cy="214" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="217.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">1</text></g><g class="course" data-id="ise402" tabindex="0" role="button" aria-label="ISE 402: Production Systems and Inventory Control, 3 credits"><rect x="771" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,562 V552 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V562 Z" fill="#86323e"></path><text x="811" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="811" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">402</text><circle cx="848" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise391" tabindex="0" role="button" aria-label="ISE 391: Industrial Engineering Design, 2 credits"><rect x="764" y="372" width="94" height="64" rx="14" fill="#fff" stroke="#111" stroke-dasharray="3 3" stroke-width="1.2"></rect><rect x="771" y="380" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="378" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,398 V388 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V398 Z" fill="#86323e"></path><text x="811" y="393" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="811" y="420" text-anchor="middle" fill="#111" font-size="18" font-weight="700">391</text><circle cx="848" cy="378" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="381.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="ise324" tabindex="0" role="button" aria-label="ISE 324: Work and Process Improvements, 2 credits"><rect x="771" y="462" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="460" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,480 V470 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V480 Z" fill="#86323e"></path><text x="811" y="475" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="811" y="502" text-anchor="middle" fill="#111" font-size="18" font-weight="700">324</text><circle cx="848" cy="460" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="463.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">2</text></g><g class="course" data-id="ise321" tabindex="0" role="button" aria-label="ISE 321: Optimization Methods, 3 credits"><rect x="771" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,644 V634 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V644 Z" fill="#86323e"></path><text x="811" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="811" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">321</text><circle cx="848" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise307" tabindex="0" role="button" aria-label="ISE 307: Engineering Economic Analysis, 3 credits"><rect x="764" y="700" width="94" height="64" rx="14" fill="#fff" stroke="#111" stroke-dasharray="3 3" stroke-width="1.2"></rect><rect x="771" y="708" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="706" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,726 V716 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V726 Z" fill="#86323e"></path><text x="811" y="721" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="811" y="748" text-anchor="middle" fill="#111" font-size="18" font-weight="700">307</text><circle cx="848" cy="706" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="709.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="bus200" tabindex="0" role="button" aria-label="BUS 200: Business &amp; Entrepreneurship, 3 credits"><rect x="771" y="790" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="770" y="788" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M770,808 V798 a10,10 0 0 1 10,-10 H842 a10,10 0 0 1 10,10 V808 Z" fill="#346d80"></path><text x="811" y="803" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">BUS</text><text x="811" y="830" text-anchor="middle" fill="#111" font-size="18" font-weight="700">200</text><circle cx="848" cy="788" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="848" y="791.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise398" tabindex="0" role="button" aria-label="ISE 398: Internship, 6 credits"><rect x="1045" y="462" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1044" y="460" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1044,480 V470 a10,10 0 0 1 10,-10 H1116 a10,10 0 0 1 10,10 V480 Z" fill="#86323e"></path><text x="1085" y="475" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1085" y="502" text-anchor="middle" fill="#111" font-size="18" font-weight="700">398</text><circle cx="1122" cy="460" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1122" y="463.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">6</text></g><g class="course" data-id="ise411" tabindex="0" role="button" aria-label="ISE 411: Senior Design Project I, 0 credits"><rect x="1045" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1044" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1044,316 V306 a10,10 0 0 1 10,-10 H1116 a10,10 0 0 1 10,10 V316 Z" fill="#86323e"></path><text x="1085" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1085" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">411</text><circle cx="1122" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1122" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">0</text></g><g class="course" data-id="ise4xxa" tabindex="0" role="button" aria-label="ISE 4xx: ISE Elective I, 3 credits"><rect x="1182.5" y="708" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="706" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,726 V716 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V726 Z" fill="#bc4a56"></path><text x="1222.5" y="721" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1222.5" y="748" text-anchor="middle" fill="#111" font-size="18" font-weight="700">4xx</text><circle cx="1259.5" cy="706" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="709.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise4xxb" tabindex="0" role="button" aria-label="ISE 4xx: ISE Elective II, 3 credits"><rect x="1182.5" y="790" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="788" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,808 V798 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V808 Z" fill="#bc4a56"></path><text x="1222.5" y="803" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1222.5" y="830" text-anchor="middle" fill="#111" font-size="18" font-weight="700">4xx</text><circle cx="1259.5" cy="788" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="791.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise405" tabindex="0" role="button" aria-label="ISE 405: Stochastic Systems Simulation, 3 credits"><rect x="1182.5" y="544" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="542" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,562 V552 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V562 Z" fill="#86323e"></path><text x="1222.5" y="557" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1222.5" y="584" text-anchor="middle" fill="#111" font-size="18" font-weight="700">405</text><circle cx="1259.5" cy="542" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="545.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise422" tabindex="0" role="button" aria-label="ISE 422: Facility Layout and Location, 3 credits"><rect x="1182.5" y="626" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="624" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,644 V634 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V644 Z" fill="#86323e"></path><text x="1222.5" y="639" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1222.5" y="666" text-anchor="middle" fill="#111" font-size="18" font-weight="700">422</text><circle cx="1259.5" cy="624" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="627.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="gsxxx" tabindex="0" role="button" aria-label="GS xxx: GS Elective, 3 credits"><rect x="1182.5" y="298" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="296" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,316 V306 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V316 Z" fill="#678e3a"></path><text x="1222.5" y="311" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">GS</text><text x="1222.5" y="338" text-anchor="middle" fill="#111" font-size="18" font-weight="700">xxx</text><circle cx="1259.5" cy="296" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="299.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g><g class="course" data-id="ise412" tabindex="0" role="button" aria-label="ISE 412: Senior Design Project II, 3 credits"><rect x="1182.5" y="380" width="82" height="52" rx="11" fill="rgba(0,0,0,0.15)"></rect><rect class="body" x="1181.5" y="378" width="82" height="52" rx="11" fill="#bec2d6"></rect><path d="M1181.5,398 V388 a10,10 0 0 1 10,-10 H1253.5 a10,10 0 0 1 10,10 V398 Z" fill="#86323e"></path><text x="1222.5" y="393" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">ISE</text><text x="1222.5" y="420" text-anchor="middle" fill="#111" font-size="18" font-weight="700">412</text><circle cx="1259.5" cy="378" r="7.5" fill="#111" stroke="#fff" stroke-width="1.2"></circle><text x="1259.5" y="381.8" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-style="italic">3</text></g></g></svg>
+  </div>
+  <div class="listview" id="listview" aria-label="Courses by semester"></div>
+
+  <div class="legend">
+    <div class="key">Flow<br>Chart<br>Key</div>
+    <div>
+      <div class="item"><svg width="70" height="12"><line x1="0" y1="6" x2="62" y2="6" stroke="#111" stroke-width="1.3"/><path d="M60,2 L68,6 L60,10z" fill="#111"/></svg>Pre-requisite</div>
+      <div class="item"><svg width="70" height="12"><line x1="0" y1="6" x2="62" y2="6" stroke="#111" stroke-width="1.3" stroke-dasharray="4 3"/><path d="M60,2 L68,6 L60,10z" fill="#111"/></svg>Co-requisite</div>
+    </div>
+    <div>
+      <div class="item"><svg width="26" height="20"><rect x="2" y="2" width="22" height="16" rx="7" fill="none" stroke="#111" stroke-dasharray="3 3"/></svg>Pre-requisite: <i>Junior standing</i></div>
+      <div class="item"><svg width="26" height="20"><circle cx="13" cy="10" r="7" fill="#111"/><text x="13" y="13.5" font-size="9" fill="#fff" text-anchor="middle" font-style="italic" font-weight="700">x</text></svg>Total credits</div>
+    </div>
+    <div class="note">Note: Refer to the website for <a href="https://ise.kfupm.edu.sa/academics/undergraduate-program/degree-plan-new/list-of-technical-electives-for-ise-undergraduate-program/" target="_blank" rel="noopener">detailed criteria on technical elective courses ↗</a></div>
+  </div>
+  <div class="cats">
+    <span class="lbl">Course type</span>
+    <span class="c"><i style="background:#678e3a"></i>General studies</span>
+    <span class="c"><i style="background:#2d327f"></i>Mathematics &amp; science</span>
+    <span class="c"><i style="background:#346d80"></i>Computing &amp; business</span>
+    <span class="c"><i style="background:#8f7025"></i>Engineering</span>
+    <span class="c"><i style="background:#86323e"></i>ISE core</span>
+    <span class="c"><i style="background:#bc4a56"></i>ISE elective</span>
+    <span class="c"><i style="background:#a0522b"></i>Technical elective</span>
+    <span class="c"><i style="background:#808598"></i>Lab component</span>
+  </div>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+// ---------- Layout ----------
+const COLS = [
+  { label:"First Semester",  x0:57,   x1:193 },
+  { label:"Second Semester", x0:193,  x1:331 },
+  { label:"First Semester",  x0:331,  x1:468 },
+  { label:"Second Semester", x0:468,  x1:605 },
+  { label:"First Semester",  x0:605,  x1:742 },
+  { label:"Second Semester", x0:742,  x1:880 },
+  { label:"Summer",          x0:880,  x1:1016, summer:true },
+  { label:"First Semester",  x0:1016, x1:1154 },
+  { label:"Second Semester", x0:1154, x1:1291 },
+];
+const YEARS = [["FRESHMAN",0,1],["SOPHOMORE",2,3],["JUNIOR",4,6],["SENIOR",7,8]];
+const TOP = 111, BOTTOM = 902, FOOT = 862, BW = 82, HH = 20, BH = 52;
+
+const C = {
+  // Green: general studies · Navy: math & science · Teal: computing & business
+  // Gold: engineering service · Maroon: ISE core · Light red: ISE electives · Orange: free elective
+  IAS:"#678e3a", ENG:"#678e3a", PE:"#678e3a", CGS:"#678e3a", GS:"#678e3a",
+  MATH:"#2d327f", PHYS:"#2d327f", CHEM:"#2d327f",
+  ICS:"#346d80", COE:"#346d80", BUS:"#346d80", ISE291:"#346d80",
+  CE:"#8f7025", MSE:"#8f7025", ME:"#8f7025", EE:"#8f7025", CIE:"#8f7025",
+  ISE:"#86323e", ISEE:"#bc4a56", XE:"#a0522b"
+};
+
+// id, dept, number, credits, column, center-y, options
+const COURSES = [
+  ["ias121","IAS","121",2,0,240],
+  ["eng101","ENG","101",3,0,322],
+  ["math101","MATH","101",4,0,568],
+  ["phys101","PHYS","101",4,0,650],
+  ["pe101","PE","101",1,0,814],
+  ["chem101","CHEM","101",4,0,732],
+
+  ["ias111","IAS","111",2,1,240],
+  ["eng102","ENG","102",3,1,322],
+  ["math102","MATH","102",4,1,568],
+  ["phys102","PHYS","102",4,1,650],
+  ["ics104","ICS","104",3,1,486],
+  ["ce101","CE","101",2,1,814],
+
+  ["eng214","ENG","214",3,2,322],
+  ["ise205","ISE","205",3,2,486],
+  ["math201","MATH","201",3,2,568],
+  ["ise291","ISE","291",3,2,404,{color:C.ISE291}],
+  ["mse201","MSE","201",3,2,732,{second:"202",credits2:1}],
+
+  ["ias212","IAS","212",2,3,240],
+  ["ise315","ISE","315",3,3,568],
+  ["math208","MATH","208",3,3,650],
+  ["ee236","EE","236",3,3,732],
+  ["coe292","COE","292",3,3,404],
+  ["me322","ME","322",3,3,814,{second:"323",credits2:1}],
+
+  ["iasxxx","IAS","xxx",2,4,240],
+  ["xexxx","XE","xxx",3,4,814],
+  ["ise303","ISE","303",3,4,650],
+  ["ise320","ISE","320",3,4,568],
+  ["cie301","CIE","301",3,4,486],
+  ["cie305","CIE","305",3,4,732],
+  ["ise499","ISE","499",0,4,322,{dashed:true}],
+
+  ["cgs392","CGS","392",1,5,240],
+  ["ise402","ISE","402",3,5,568],
+  ["ise391","ISE","391",2,5,404,{dashed:true}],
+  ["ise324","ISE","324",2,5,486],
+  ["ise321","ISE","321",3,5,650],
+  ["ise307","ISE","307",3,5,732,{dashed:true}],
+  ["bus200","BUS","200",3,5,814],
+
+  ["ise398","ISE","398",6,7,486],
+  ["ise411","ISE","411",0,7,322],
+
+  ["ise4xxa","ISE","4xx",3,8,732,{color:C.ISEE}],
+  ["ise4xxb","ISE","4xx",3,8,814,{color:C.ISEE}],
+  ["ise405","ISE","405",3,8,568],
+  ["ise422","ISE","422",3,8,650],
+  ["gsxxx","GS","xxx",3,8,322],
+  ["ise412","ISE","412",3,8,404],
+];
+
+// Official titles and Lecture-Lab-Credit format (KFUPM Undergraduate Bulletin, ISE Internship Option)
+const INFO = {
+  ias121:["Language Foundation","2-0-2"], eng101:["Introduction to Academic Discourse","3-0-3"],
+  math101:["Calculus I","4-0-4"], phys101:["General Physics I","3-3-4"], pe101:["Physical Education","0-2-1"],
+  chem101:["Principles of Chemical Science I","3-3-4"],
+  ias111:["Belief and its Consequences","2-0-2"], eng102:["Introduction to Argument Writing","3-0-3"],
+  math102:["Calculus II","4-0-4"], phys102:["General Physics II","3-3-4"],
+  ics104:["Introduction to Programming in Python and C","2-3-3"], ce101:["Engineering Graphics","1-3-2"],
+  eng214:["Academic & Professional Communication","3-0-3"], ise205:["Engineering Probability and Statistics","3-0-3"],
+  math201:["Calculus III","3-0-3"], ise291:["Introduction to Data Science","3-0-3"],
+  mse201:["Introduction to Materials","3-0-3", "MSE 202 Materials Lab","0-3-1"],
+  ias212:["Professional Ethics and Governance","2-0-2"], ise315:["Engineering Statistics","3-0-3"],
+  math208:["Differential Equations and Linear Algebra","3-0-3"], ee236:["Electronic Circuits (Non-EE students)","3-0-3"],
+  coe292:["Introduction to Artificial Intelligence","3-0-3"],
+  me322:["Manufacturing Processes","3-0-3", "ME 323 Manufacturing Lab","0-3-1"],
+  iasxxx:["Islamic/Arabic Elective","2-0-2"], xexxx:["Technical Elective","3-0-3"],
+  ise303:["Operation Research I","3-0-3"], ise320:["Quality Control and Industrial Statistics","3-0-3"],
+  cie301:["Numerical Methods","3-0-3"], cie305:["Linear Control Systems","3-0-3"], ise499:["Seminars","1-0-0"],
+  cgs392:["Career Essentials","0-2-1"], ise402:["Production Systems and Inventory Control","3-0-3"],
+  ise391:["Industrial Engineering Design","1-3-2"], ise324:["Work and Process Improvements","2-0-2"],
+  ise321:["Optimization Methods","3-0-3"], ise307:["Engineering Economic Analysis","3-0-3"],
+  bus200:["Business & Entrepreneurship","3-0-3"],
+  ise398:["Internship","0-0-6"], ise411:["Senior Design Project I","0-1-0"],
+  ise4xxa:["ISE Elective I","3-0-3"], ise4xxb:["ISE Elective II","3-0-3"],
+  ise405:["Stochastic Systems Simulation","2-3-3"], ise422:["Facility Layout and Location","3-0-3"],
+  gsxxx:["GS Elective","3-0-3"], ise412:["Senior Design Project II","0-6-3"],
+};
+
+// IE themes from the program-revision renumbering scheme ("Renumbering Code" sheet, revised degree plan V2):
+// the second digit of the proposed IE course number identifies the theme.
+const IE_THEMES = ["Probability & Statistical Analysis", "Miscellaneous & Team Design", "Deterministic OR", "Stochastic OR",
+  "Operations & Logistics", "Human-Centered Systems", "Data Science", "Engineering Management",
+  "Maintenance & Reliability", "Special Topics"];
+const THEME_COLORS = ["#2d6a9f", "#6b5b95", "#86323e", "#a0522b", "#2e7d5b", "#b5651d", "#346d80", "#5a5a5a", "#7a6a1f", "#777"];
+const NEW_CODE = { ise205:"IE 205", ise291:"IE 261", ise303:"IE 221", ise307:"IE 270", ise315:"IE 305", ise320:"IE 407",
+  ise321:"IE 321", ise324:"IE 350", ise391:"IE 350", ise398:"IE 398", ise402:"IE 442", ise405:"IE 335", ise411:"IE 411",
+  ise412:"IE 412", ise422:"IE 444", ise499:"IE 499" };
+// Courses that keep a proposed code but are not assigned to an IE theme (internship, seminars)
+const NO_THEME = new Set(["ise398", "ise499"]);
+// Brief "What you will learn" (paraphrased from the KFUPM Undergraduate Bulletin course descriptions)
+const LEARN = {
+  ias121: "Learn how to speak and write Arabic with confidence, express your ideas clearly, and hold your own in a thoughtful debate.",
+  eng101: "Learn how to read academic texts strategically, plan and polish your own essays, and build an argument that persuades.",
+  math101: "Learn how to measure change with derivatives, sketch any curve, and find the best possible answer to real optimization problems.",
+  phys101: "Learn how to predict how objects move, collide, spin, and flow by mastering the laws behind energy, momentum, and gravity.",
+  pe101: "Learn how to assess and boost your own fitness, pick up new sports, and take on challenges like a 5 km run.",
+  chem101: "Learn how atoms bond and react, how to calculate exactly what a reaction will produce, and how to run real experiments in the lab.",
+  ias111: "Learn how to understand the foundations of Islamic belief with their evidence and build a balanced, confident outlook on faith and life.",
+  eng102: "Learn how to find and judge credible sources, turn research into a convincing written argument, and present it with impact.",
+  math102: "Learn how to calculate areas and volumes with integrals, crack tough integration problems, and approximate functions with infinite series.",
+  phys102: "Learn how sound, heat, electricity, and magnetism work, and how to analyze the circuits and fields that power modern technology.",
+  ics104: "Learn how to write your own Python programs, automate tedious tasks, and solve science, engineering, and business problems with code.",
+  ce101: "Learn how to sketch ideas by hand, read and create engineering drawings, and communicate designs the way engineers do.",
+  eng214: "Learn how to write a professional research report and proposal, craft a standout resume, and ace interviews and team presentations.",
+  ise205: "Learn how to quantify uncertainty, model randomness with probability, and make sense of engineering data.",
+  math201: "Learn how to work in three dimensions, track change across many variables, and compute volumes of complex shapes.",
+  ise291: "Learn how to clean, explore, and visualize real data, query databases with SQL, and build models that predict and classify.",
+  mse201: "Learn why materials bend, break, or hold strong, how to make them stronger, and how to test them in the lab.",
+  ias212: "Learn how to handle ethical dilemmas at work, act with integrity, and navigate professional codes of conduct in Saudi Arabia.",
+  ise315: "Learn how to test claims with data, build regression models that explain what drives results, and design experiments that find answers fast.",
+  math208: "Learn how to solve large systems of equations, unlock the power of matrices, and model systems that change over time with differential equations.",
+  ee236: "Learn how to analyze and build electric circuits, from amplifiers to the digital chips inside every device.",
+  coe292: "Learn how machines search, reason, and learn, train your own neural networks, and weigh the ethical questions AI raises.",
+  me322: "Learn how products are actually made, from casting and welding to CNC machining and 3D printing, and get hands-on in the shop.",
+  iasxxx: "Learn about an Islamic or Arabic studies topic you choose, from Islamic finance and entrepreneurship to human rights and communication.",
+  xexxx: "Learn a new engineering field of your choosing and bring a fresh perspective to industrial and systems engineering.",
+  ise303: "Learn how to turn messy decisions into optimization models and find the best plan for production, transportation, and resource allocation.",
+  ise320: "Learn how to keep processes under control, catch quality problems before customers do, and prove a process is capable.",
+  cie301: "Learn how to let computers solve the equations you can't solve by hand, and how to know how much to trust the answers.",
+  cie305: "Learn how to model dynamic systems, from production lines to finances, predict how they respond, and design controllers that keep them stable.",
+  ise499: "Learn how industrial and systems engineering is practiced today by meeting professionals, visiting industry, and joining workshops.",
+  cgs392: "Learn how to think creatively, solve problems, land the job you want, and thrive inside a real organization.",
+  ise402: "Learn how to forecast demand, manage inventory, and schedule production so the right products are made at the right time.",
+  ise391: "Learn how to take an engineering design from a vague problem to a working solution, and lead a real team project.",
+  ise324: "Learn how to redesign work so it is faster, safer, and easier, and how to measure exactly how long a job should take.",
+  ise321: "Learn how to solve the hardest optimization problems, from yes-or-no decisions to nonlinear models, using powerful algorithms.",
+  ise307: "Learn how to put a price on engineering decisions and choose which projects and investments are truly worth it.",
+  bus200: "Learn how businesses really run, from management and marketing to finance and starting your own venture.",
+  ise398: "Learn how to apply your engineering skills inside a real organization, solve real problems, and launch your professional career.",
+  ise411: "Learn how to build your capstone team, define a meaningful project, and plan it like a professional project manager.",
+  ise4xxa: "Learn how to go deep in the specialty that excites you most, from advanced optimization to logistics, quality, or data-driven systems.",
+  ise4xxb: "Learn how to sharpen your expertise even further or explore a new corner of industrial and systems engineering that fits your career goals.",
+  ise405: "Learn how to build computer simulations of real systems, test ideas virtually before investing, and analyze the results with confidence.",
+  ise422: "Learn how to choose the best location for a facility, design efficient layouts, and plan warehouses that keep materials flowing.",
+  gsxxx: "Learn about people, societies, and ideas beyond engineering, through a social sciences or humanities course of your choice.",
+  ise412: "Learn how to turn your capstone idea into a finished design and present it to engineers and industry like a pro.",
+};
+
+// [from, to, type]  type: "p" prerequisite, "c" co-requisite
+const LINKS = [
+  // Verified against the 2nd reference chart and the KFUPM Undergraduate Bulletin (ISE 499 -> ISE 398 removed per bulletin)
+  ["ias111","ias212","p"],
+  ["eng101","eng102","p"],
+  ["eng102","eng214","p"],
+  ["eng214","cgs392","p"],
+  ["eng214","ise391","p"],
+  ["eng214","ise398","p"],
+  ["math101","math102","p"],
+  ["math101","ics104","c"],
+  ["phys101","phys102","p"],
+  ["math102","math201","p"],
+  ["math102","math208","p"],
+  ["math102","ise205","p"],
+  ["math102","ise291","p"],
+  ["math102","ee236","p"],
+  ["math102","mse201","p"],
+  ["phys102","ee236","p"],
+  ["phys102","mse201","p"],
+  ["chem101","mse201","p"],
+  ["ics104","ise291","p"],
+  ["ics104","cie301","p"],
+  ["math201","cie301","p"],
+  ["ce101","me322","p"],
+  ["mse201","me322","p"],
+  ["ise291","coe292","p"],
+  ["ise205","ise315","p"],
+  ["ise205","ise391","p"],
+  ["ise205","ise324","p"],
+  ["ise205","ise402","p"],
+  ["math208","ise303","p"],
+  ["math208","cie305","p"],
+  ["ee236","cie305","p"],
+  ["ise315","ise320","c"],
+  ["ise315","ise405","p"],
+  ["ise303","ise402","p"],
+  ["ise303","ise321","p"],
+  ["ise303","ise422","p"],
+  ["ise303","ise398","p"],
+  ["ise391","ise398","p"],
+  ["ise391","ise412","p"],
+  ["ise499","ise412","p"],
+  ["ise411","ise412","p"],
+];
+
+// ---------- Render ----------
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("plan");
+// The file ships with a pre-drawn copy of the chart (for viewers that don't run scripts, e.g. iPhone
+// file previews in Files, Mail, Teams or OneDrive). With scripts on, redraw it live from the data.
+while (svg.firstChild) svg.removeChild(svg.firstChild);
+document.documentElement.classList.add("js");
+const el = (tag, attrs, parent = svg, text) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text !== undefined) n.textContent = text;
+  parent.appendChild(n);
+  return n;
+};
+
+const defs = el("defs", {});
+const clip = el("clipPath", { id:"round" }, defs);
+el("rect", { x:57, y:TOP, width:1234, height:BOTTOM-TOP, rx:22 }, clip);
+const m = el("marker", { id:"arrow", viewBox:"0 0 10 10", refX:9, refY:5, markerWidth:7, markerHeight:7, orient:"auto-start-reverse" }, defs);
+el("path", { d:"M0,1 L10,5 L0,9 z", fill:"#111" }, m);
+[["arrowPre","#1f6fb2"],["arrowPost","#d9731a"]].forEach(([id, col]) => {
+  const mk = el("marker", { id, viewBox:"0 0 10 10", refX:9, refY:5, markerWidth:6, markerHeight:6, orient:"auto-start-reverse" }, defs);
+  el("path", { d:"M0,1 L10,5 L0,9 z", fill:col }, mk);
+});
+
+// Background columns
+const bg = el("g", { "clip-path":"url(#round)" });
+COLS.forEach((c, i) => {
+  const fill = c.summer ? "#a48786" : (i % 2 === 0 ? "#d0d0d0" : "#e2e3e5");
+  el("rect", { x:c.x0, y:TOP, width:c.x1-c.x0, height:BOTTOM-TOP, fill }, bg);
+  el("rect", { x:c.x0, y:156, width:c.x1-c.x0, height:36, fill:"#86323e" }, bg);
+  el("text", { x:(c.x0+c.x1)/2, y:180, "text-anchor":"middle", fill: c.summer ? "#fff" : "#fff", "font-size":15, "font-weight":500 }, bg, c.label);
+});
+el("rect", { x:57, y:TOP, width:1234, height:45, fill:"#1f1d1d" }, bg);
+// Credit totals (computed from the course list, so they stay correct after edits)
+const semCredits = COLS.map((c, i) => COURSES.filter(r => r[4] === i).reduce((s, r) => s + r[3] + ((r[6] || {}).credits2 || 0), 0));
+const total = semCredits.reduce((a, b) => a + b, 0);
+document.getElementById("progTotal").textContent = total;
+el("rect", { x:57, y:FOOT, width:1234, height:BOTTOM-FOOT, fill:"#1f1d1d" }, bg);
+COLS.forEach((c, i) => {
+  if (i) el("line", { x1:c.x0, y1:FOOT+8, x2:c.x0, y2:BOTTOM-8, stroke:"#555" }, bg);
+  const t = el("text", { x:(c.x0+c.x1)/2, y:FOOT+26, "text-anchor":"middle", fill:"#fff", "font-size":15 }, bg);
+  if (c.summer) { t.textContent = "—"; return; }
+  el("tspan", { "font-weight":700, "font-size":17 }, t, semCredits[i]);
+  el("tspan", { fill:"#cfcfcf" }, t, " credits");
+});
+YEARS.forEach(([name, a, b]) => {
+  let x = (COLS[a].x0 + COLS[b].x1) / 2;
+  if (name === "JUNIOR") x = (COLS[4].x0 + COLS[5].x1) / 2;
+  const yc = semCredits.slice(a, b + 1).reduce((s, v) => s + v, 0);
+  const t = el("text", { x, y:141, "text-anchor":"middle", fill:"#fff", "font-size":19, "font-weight":700, "letter-spacing":4 }, bg, name);
+  el("tspan", { "font-size":13, "font-weight":400, "letter-spacing":0.5, fill:"#bdbdbd", dx:10 }, t, `${yc} cr`);
+});
+
+// Course geometry
+const pos = {};
+COURSES.forEach(([id, , , , col, cy, o = {}]) => {
+  const cx = (COLS[col].x0 + COLS[col].x1) / 2;
+  const h = o.second ? BH + 14 : BH;
+  pos[id] = { cx, cy, l: cx - BW/2, r: cx + BW/2, t: cy - h/2, b: cy + h/2, col };
+});
+
+// ---- Arrow routing ----
+const PORT_GAP = 9, LANE_GAP = 10;
+let usedLanes = {};
+// Nearest y to `want` in column k that is clear of that column's courses and of other arrows' lanes
+function freeLane(k, want) {
+  const M = 11; const lo = 205, hi = FOOT - 12;
+  const blocked = Object.values(pos).filter(b => b.col === k).map(b => [b.t - M, b.b + M]);
+  const used = usedLanes[k] = usedLanes[k] || [];
+  const ok = y => y >= lo && y <= hi && blocked.every(([a, b]) => y < a || y > b)
+                  && used.every(u => Math.abs(u - y) >= LANE_GAP);
+  for (let d = 0; d < 700; d++)
+    for (const y of [want + d, want - d]) if (ok(y)) { used.push(y); return y; }
+  return want;
+}
+// Waypoints for a cross-column arrow: straight lanes through intermediate columns,
+// bends only in the empty gutters between columns.
+function route(a, b, y1, y2) {
+  const p = pos[a], q = pos[b], x1 = p.r, x2 = q.l - 2, pts = [[x1, y1]];
+  for (let k = p.col + 1; k < q.col; k++) {
+    if (COLS[k].summer) continue;               // summer column has no courses
+    const cx = (COLS[k].x0 + COLS[k].x1) / 2;
+    const lane = freeLane(k, Math.round(y1 + (y2 - y1) * (cx - x1) / (x2 - x1)));
+    pts.push([cx - BW/2 - 5, lane], [cx + BW/2 + 5, lane]);
+  }
+  pts.push([x2, y2]);
+  return pts;
+}
+
+const crossLinks = LINKS.filter(([a, b]) => pos[a].col !== pos[b].col);
+const key = l => l[0] + ">" + l[1];
+// Long arrows first, so they get the straightest lanes
+crossLinks.sort((m, n) => (pos[n[1]].col - pos[n[0]].col) - (pos[m[1]].col - pos[m[0]].col));
+
+// Pass 1: route from course centres to learn where each arrow heads after leaving its
+// source and where it comes from before reaching its target.
+const heads = {}, tails = {};
+crossLinks.forEach(l => {
+  const pts = route(l[0], l[1], pos[l[0]].cy, pos[l[1]].cy);
+  heads[key(l)] = pts[1][1] + pts[pts.length - 1][1] / 1000;
+  tails[key(l)] = pts[pts.length - 2][1] + pts[0][1] / 1000;
+});
+// Ports: spread arrows sharing a course, in the order they head off / arrive, so the
+// fan-outs never cross or merge.
+const ports = {};
+Object.keys(pos).forEach(id => {
+  const outs = crossLinks.filter(l => l[0] === id).sort((m, n) => heads[key(m)] - heads[key(n)]);
+  const ins  = crossLinks.filter(l => l[1] === id).sort((m, n) => tails[key(m)] - tails[key(n)]);
+  outs.forEach((l, i) => (ports[key(l)] = ports[key(l)] || {}).y1 = pos[id].cy + (i - (outs.length - 1) / 2) * PORT_GAP);
+  ins.forEach((l, i)  => (ports[key(l)] = ports[key(l)] || {}).y2 = pos[id].cy + (i - (ins.length - 1) / 2) * PORT_GAP);
+});
+
+// Pass 2: final routes with real ports
+usedLanes = {};
+const lg = el("g", { fill:"none", stroke:"#111", "stroke-width":1.2 });
+const drawn = {};
+crossLinks.forEach(l => {
+  const pts = route(l[0], l[1], ports[key(l)].y1, ports[key(l)].y2);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [xa, ya] = pts[i-1], [xb, yb] = pts[i];
+    if (ya === yb) { d += ` L${xb},${yb}`; continue; }
+    const dx = (xb - xa) / 2;
+    d += ` C${xa+dx},${ya} ${xb-dx},${yb} ${xb},${yb}`;
+  }
+  drawn[key(l)] = d;
+});
+LINKS.forEach(([a, b, type]) => {
+  let d = drawn[a + ">" + b];
+  if (!d) { // same column: vertical
+    const p = pos[a], q = pos[b], down = q.cy > p.cy;
+    d = `M${p.cx},${down ? p.b : p.t} L${q.cx},${down ? q.t - 2 : q.b + 2}`;
+  }
+  const attrs = { d, class:"link", "marker-end":"url(#arrow)", "data-from":a, "data-to":b };
+  if (type === "c") attrs["stroke-dasharray"] = "4 3";
+  el("path", attrs, lg);
+});
+
+// Course boxes
+const cg = el("g", {});
+COURSES.forEach(([id, dept, num, credits, col, cy, o = {}]) => {
+  const p = pos[id], color = o.color || C[dept] || "#555";
+  const g = el("g", { class:"course", "data-id":id, tabindex:0, role:"button",
+                     "aria-label":`${dept} ${num}${o.second ? "/" + o.second : ""}: ${(INFO[id]||[""])[0]}, ${credits + (o.credits2||0)} credits` }, cg);
+  const h = p.b - p.t;
+  if (o.dashed) {
+    el("rect", { x:p.l-6, y:p.t-6, width:BW+12, height:h+12, rx:14, fill:"#fff", stroke:"#111", "stroke-dasharray":"3 3", "stroke-width":1.2 }, g);
+  }
+  // body + shadow
+  el("rect", { x:p.l+1, y:p.t+2, width:BW, height:h, rx:11, fill:"rgba(0,0,0,0.15)" }, g);
+  el("rect", { class:"body", x:p.l, y:p.t, width:BW, height:h, rx:11, fill:"#bec2d6" }, g);
+  if (o.second) el("path", { d:`M${p.l},${p.t+HH+24} H${p.r} V${p.b-11} a11,11 0 0 1 -11,11 H${p.l+11} a11,11 0 0 1 -11,-11 Z`, fill:"#808598" }, g);
+  // coloured header
+  el("path", { d:`M${p.l},${p.t+HH} V${p.t+10} a10,10 0 0 1 10,-10 H${p.r-10} a10,10 0 0 1 10,10 V${p.t+HH} Z`, fill:color }, g);
+  el("text", { x:p.cx, y:p.t+15, "text-anchor":"middle", fill:"#fff", "font-size":12.5, "font-weight":700 }, g, dept);
+  if (o.second) {
+    el("text", { x:p.cx, y:p.t+HH+19, "text-anchor":"middle", fill:"#111", "font-size":16, "font-weight":700 }, g, num);
+    el("text", { x:p.cx, y:p.t+HH+41, "text-anchor":"middle", fill:"#111", "font-size":16, "font-weight":700 }, g, o.second);
+    badge(g, p.r - 4, p.t + HH + 24, o.credits2);
+  } else {
+    el("text", { x:p.cx, y:p.t+HH+22, "text-anchor":"middle", fill:"#111", "font-size":18, "font-weight":700 }, g, num);
+  }
+  badge(g, p.r - 4, p.t, credits);
+});
+
+// ---------- Interaction: tooltip + prerequisite tracing ----------
+const META = Object.fromEntries(COURSES.map(([id, dept, num, credits, , , o = {}]) => [id, { dept, num, credits, o }]));
+const code = id => `${META[id].dept} ${META[id].num}`;
+const preOf = {}, postOf = {};
+LINKS.forEach(([a, b, t]) => { (preOf[b] = preOf[b] || []).push([a, t]); (postOf[a] = postOf[a] || []).push([b, t]); });
+const closure = (id, map) => {
+  const seen = new Set(), st = [id];
+  while (st.length) (map[st.pop()] || []).forEach(([y]) => { if (!seen.has(y)) { seen.add(y); st.push(y); } });
+  return seen;
+};
+const tip = document.getElementById("tip"), info = document.getElementById("info");
+const themeChip = id => {
+  // Only courses mapped to an IE theme get a bubble
+  const nc = NEW_CODE[id];
+  if (!nc || NO_THEME.has(id)) return "";
+  const d = +nc.split(" ")[1][1];
+  return `<span class="chip" style="--t:${THEME_COLORS[d]}">${IE_THEMES[d]}</span>`;
+};
+const credLine = id => {
+  const m = META[id], i = INFO[id] || [];
+  let s = `${m.credits} credit${m.credits === 1 ? "" : "s"} (${i[1]})`;
+  if (i[2]) s += ` + ${i[2]}: ${m.o.credits2} credit (${i[3]})`;
+  return s;
+};
+
+document.querySelectorAll(".course").forEach(g => {
+  const id = g.dataset.id;
+  g.addEventListener("mouseenter", () => {
+    const i = INFO[id] || [];
+    tip.innerHTML = `<div class="t">${code(id)}${META[id].o.second ? "/" + META[id].o.second : ""} · ${i[0] || ""}</div>
+      <div class="m">${credLine(id)}${META[id].o.dashed ? "<br>Requires junior standing" : ""}</div>`;
+    tip.classList.add("on");
+  });
+  g.addEventListener("mousemove", e => {
+    const w = tip.offsetWidth, x = e.clientX + 14 + w > innerWidth ? e.clientX - w - 14 : e.clientX + 14;
+    tip.style.left = x + "px"; tip.style.top = (e.clientY + 16) + "px";
+  });
+  g.addEventListener("mouseleave", () => tip.classList.remove("on"));
+  g.addEventListener("click", e => { e.stopPropagation(); select(selected === id ? null : id); });
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(selected === id ? null : id); } });
+});
+svg.addEventListener("click", () => select(null));
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!saveMenu.hidden) closeMenu(); else select(null); } });
+
+// Print / Save menu
+const saveBtn = document.getElementById("saveBtn"), saveMenu = document.getElementById("saveMenu");
+function closeMenu() { saveMenu.hidden = true; saveBtn.setAttribute("aria-expanded", "false"); }
+saveBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  const open = saveMenu.hidden;
+  saveMenu.hidden = !open; saveBtn.setAttribute("aria-expanded", String(open));
+  if (open) saveMenu.querySelector("button").focus();
+});
+saveMenu.addEventListener("click", e => { if (e.target.closest("button")) closeMenu(); });
+document.addEventListener("click", e => { if (!e.target.closest(".savemenu")) closeMenu(); });
+document.getElementById("printBtn").addEventListener("click", () => window.print());
+info.addEventListener("click", e => { if (e.target.closest(".x")) select(null); });
+
+// ---------- Vector export: full page (title, logo, chart, key) as one standalone SVG ----------
+function buildExportSVG() {
+  const W = 1250, TOPH = 100, CHH = 802, H = TOPH + CHH + 128;
+  const FONT = 'Roboto, "Helvetica Neue", Arial, sans-serif';
+  const out = document.createElementNS(NS, "svg");
+  [["xmlns", NS], ["xmlns:xlink", "http://www.w3.org/1999/xlink"], ["viewBox", `0 0 ${W} ${H}`],
+   ["width", W], ["height", H], ["font-family", FONT]].forEach(([k, v]) => out.setAttribute(k, v));
+  const add = (tag, attrs, parent = out, text) => el(tag, attrs, parent, text);
+  add("rect", { width:W, height:H, fill:"#fff" });
+  // Header
+  add("text", { x:20, y:44, "font-size":30, "font-weight":900, fill:"#111" }, out, "Industrial and Systems Engineering (ISE) - Degree Plan");
+  add("text", { x:20, y:76, "font-size":21, fill:"#111" }, out, `Internship Option · ${total} credit hours`);
+  const logo = document.querySelector(".logo");
+  if (logo) {
+    const lh = 64, lw = lh * (logo.naturalWidth || 494) / (logo.naturalHeight || 116);
+    const im = add("image", { x:W - lw - 12, y:16, width:lw, height:lh, href:logo.src });
+    im.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", logo.src);
+  }
+  // Chart (clean copy: no highlight state, no interactive attributes)
+  const g = add("g", { transform:`translate(-50 ${TOPH - 105})` });
+  svg.childNodes.forEach(n => g.appendChild(n.cloneNode(true)));
+  g.querySelectorAll("[class], [tabindex], [role], [aria-label], [data-id], [data-from]").forEach(n =>
+    ["class", "tabindex", "role", "aria-label", "data-id", "data-from", "data-to"].forEach(a => n.removeAttribute(a)));
+  // Key
+  const y0 = TOPH + CHH + 26, k = add("g", { "font-size":14, fill:"#111" });
+  add("text", { x:20, y:y0, "font-size":16, "font-weight":900 }, k, "Flow Chart Key");
+  add("line", { x1:160, y1:y0 - 5, x2:224, y2:y0 - 5, stroke:"#111", "stroke-width":1.3, "marker-end":"url(#arrow)" }, k);
+  add("text", { x:234, y:y0 }, k, "Pre-requisite");
+  add("line", { x1:350, y1:y0 - 5, x2:414, y2:y0 - 5, stroke:"#111", "stroke-width":1.3, "stroke-dasharray":"4 3", "marker-end":"url(#arrow)" }, k);
+  add("text", { x:424, y:y0 }, k, "Co-requisite");
+  add("rect", { x:540, y:y0 - 15, width:24, height:18, rx:7, fill:"none", stroke:"#111", "stroke-dasharray":"3 3" }, k);
+  const jt = add("text", { x:572, y:y0 }, k, "Pre-requisite: ");
+  add("tspan", { "font-style":"italic" }, jt, "Junior standing");
+  add("circle", { cx:782, cy:y0 - 5, r:8, fill:"#111" }, k);
+  add("text", { x:782, y:y0 - 1.5, "font-size":10, "font-weight":700, "font-style":"italic", fill:"#fff", "text-anchor":"middle" }, k, "x");
+  add("text", { x:798, y:y0 }, k, "Total credits");
+  const a = add("a", { href:document.querySelector(".note a").href, target:"_blank" }, k);
+  const nt = add("text", { x:20, y:y0 + 84, "font-size":13 }, a, "Note: Refer to the website for ");
+  add("tspan", { fill:"#86323e", "font-weight":700, "text-decoration":"underline" }, nt, "detailed criteria on technical elective courses");
+  const y1 = y0 + 42;
+  add("text", { x:20, y:y1, "font-size":16, "font-weight":900 }, k, "Course type");
+  // Course types: measure real text widths (temporarily attach to the page), wrap if needed
+  const meas = document.createElementNS(NS, "svg");
+  meas.setAttribute("style", "position:absolute;left:-9999px;top:0");
+  meas.setAttribute("font-family", FONT); document.body.appendChild(meas);
+  let x = 140, yy = y1;
+  document.querySelectorAll(".cats span.c").forEach(c => {
+    const col = c.querySelector("i").style.background, label = c.textContent.trim();
+    const t = el("text", { "font-size":14 }, meas, label), w = 30 + t.getComputedTextLength() + 24;
+    if (x + w > W - 10) { x = 140; yy += 24; }
+    add("rect", { x, y:yy - 12, width:22, height:13, rx:4, fill:col }, k);
+    add("text", { x:x + 30, y:yy }, k, label);
+    x += w;
+  });
+  meas.remove();
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(out);
+}
+// When hosted on claude.ai, saving goes through the viewer's downloads capability;
+// opened as a local file, it falls back to a normal browser download.
+let claudeDownloads = null;
+if (window.claude && typeof window.claude.use === "function")
+  window.claude.use("downloads").then(d => { claudeDownloads = d; }).catch(() => {});
+document.getElementById("svgBtn").addEventListener("click", () => {
+  const svg = buildExportSVG();
+  if (claudeDownloads) {
+    claudeDownloads.save({ filename:"ISE_Degree_Plan_Internship.svg", data:svg }).catch(e => {
+      if (e && e.code !== "declined") alert("Saving the SVG is not available here.");
+    });
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([svg], { type:"image/svg+xml" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "ISE_Degree_Plan_Internship.svg";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+});
+
+// Touch devices: no hover / Esc, so word the hint for tapping
+if (matchMedia("(hover: none), (pointer: coarse), (max-width: 900px)").matches) {
+  document.querySelector(".hint").innerHTML = `Tap a course to trace what it requires<span class="sw" style="background:#1f6fb2"></span>
+    and what it unlocks<span class="sw" style="background:#d9731a"></span>. Tap it again or tap × to clear.`;
+}
+
+// ---------- List view (semester cards) ----------
+const listview = document.getElementById("listview"), wrap = document.getElementById("chartwrap");
+const SEM_NAMES = ["Freshman","Freshman","Sophomore","Sophomore","Junior","Junior","Junior","Senior","Senior"];
+const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+COLS.forEach((c, k) => {
+  const rows = COURSES.filter(r => r[4] === k).sort((a, b) => a[5] - b[5]);
+  if (!rows.length) return;
+  const sec = document.createElement("section"); sec.className = "sem";
+  sec.innerHTML = `<h3><span><span class="yr">${SEM_NAMES[k]}</span>${c.label}</span><span class="tot">${semCredits[k]} credits</span></h3><div class="grid"></div>`;
+  rows.forEach(([id, dept, num, credits, , , o = {}]) => {
+    const i = INFO[id] || [], pre = preOf[id] || [], post = postOf[id] || [];
+    const req = pre.map(x => code(x[0]) + (x[1] === "c" ? " (co-req)" : "")).join(", ");
+    const b = document.createElement("button"); b.type = "button"; b.className = "card";
+    b.style.setProperty("--c", o.color || C[dept] || "#555");
+    b.innerHTML = `<span class="bar"></span><span class="in">
+      <span class="top"><span class="code">${dept} ${num}${o.second ? "/" + o.second : ""}</span>
+        <span class="cr">${credits + (o.credits2 || 0)} cr · ${i[1] || ""}${i[3] ? " + " + i[3] : ""}</span></span>
+      <span class="ttl">${esc(i[0] || "")}${i[2] ? " + " + esc(i[2].replace(/^\S+ \S+ /, "")) : ""}</span>
+      ${themeChip(id).replace(/ <span class="muted">.*$/, "")}
+      ${LEARN[id] ? `<span class="learn">${esc(LEARN[id])}</span>` : ""}
+      <span class="rel"><b>Requires:</b> ${req || "None"}${o.dashed ? '<span class="tag">Junior standing</span>' : ""}<br>
+        <b>Unlocks:</b> ${post.map(x => code(x[0])).join(", ") || "—"}</span></span>`;
+    b.addEventListener("click", () => {
+      setView("chart"); select(id); returnToCard = b;
+      const sc = svg.getBoundingClientRect().width / 1250;
+      wrap.scrollLeft = (pos[id].cx - 50) * sc - wrap.clientWidth / 2;
+      wrap.scrollIntoView({ behavior:"smooth", block:"start" });
+    });
+    sec.querySelector(".grid").appendChild(b);
+  });
+  listview.appendChild(sec);
+});
+function setView(v) {
+  document.body.classList.toggle("list", v === "list");
+  document.getElementById("vChart").setAttribute("aria-pressed", v !== "list");
+  document.getElementById("vList").setAttribute("aria-pressed", v === "list");
+  if (v === "list") select(null);
+  try { localStorage.setItem("isePlanView", v); } catch (e) {}
+}
+document.getElementById("vChart").addEventListener("click", () => { returnToCard = null; setView("chart"); });
+document.getElementById("vList").addEventListener("click", () => { returnToCard = null; setView("list"); });
+try { if (localStorage.getItem("isePlanView") === "list") setView("list"); } catch (e) {}
+
+let selected = null;
+var returnToCard = null;   // the list card a chart selection was opened from
+function select(id) {
+  selected = id;
+  svg.classList.toggle("focus", !!id);
+  document.querySelectorAll(".course, .link").forEach(n => n.classList.remove("sel", "pre", "post", "dim"));
+  if (!id) {
+    info.hidden = true;
+    // Opened from the list view? Clearing the selection goes back to that course's card.
+    if (returnToCard) {
+      const card = returnToCard; returnToCard = null;
+      setView("list");
+      card.scrollIntoView({ block:"center" });
+      card.focus({ preventScroll:true });
+    }
+    return;
+  }
+  const anc = closure(id, preOf), desc = closure(id, postOf);
+  document.querySelectorAll(".course").forEach(g => {
+    const c = g.dataset.id;
+    g.classList.add(c === id ? "sel" : anc.has(c) ? "pre" : desc.has(c) ? "post" : "dim");
+  });
+  document.querySelectorAll(".link").forEach(l => {
+    const a = l.dataset.from, b = l.dataset.to;
+    if (anc.has(a) && (b === id || anc.has(b))) l.classList.add("pre");
+    else if ((a === id || desc.has(a)) && desc.has(b)) l.classList.add("post");
+    else l.classList.add("dim");
+  });
+  const list = (arr, t) => arr.filter(x => x[1] === t).map(x => code(x[0])).join(", ");
+  const pre = preOf[id] || [], post = postOf[id] || [];
+  const req = [list(pre, "p"), META[id].o.dashed ? "Junior standing" : ""].filter(Boolean).join(", ");
+  const i = INFO[id] || [];
+  info.innerHTML = `<b class="code">${code(id)}${META[id].o.second ? "/" + META[id].o.second : ""}</b> · ${i[0] || ""}
+    <span class="muted">· ${credLine(id)}</span><br>
+    ${themeChip(id)}
+    ${LEARN[id] ? `<div class="learn">${esc(LEARN[id])}</div>` : "<br>"}
+    <span style="color:#1f6fb2">■</span> <b>Requires:</b> ${req || "None"}${list(pre, "c") ? ` · <b>Co-requisite:</b> ${list(pre, "c")}` : ""}
+    <span class="muted">(${anc.size} course${anc.size === 1 ? "" : "s"} in the full chain)</span><br>
+    <span style="color:#d9731a">■</span> <b>Directly unlocks:</b> ${post.map(x => code(x[0]) + (x[1] === "c" ? " (co-req)" : "")).join(", ") || "Nothing"}
+    <span class="muted">(${desc.size} course${desc.size === 1 ? "" : "s"} downstream)</span>`;
+  info.insertAdjacentHTML("afterbegin", `<button class="x" type="button" aria-label="Clear selection">×</button>`);
+  info.hidden = false;
+}
+
+function badge(g, x, y, n) {
+  el("circle", { cx:x, cy:y, r:7.5, fill:"#111", stroke:"#fff", "stroke-width":1.2 }, g);
+  el("text", { x, y:y+3.8, "text-anchor":"middle", fill:"#fff", "font-size":10, "font-weight":700, "font-style":"italic" }, g, n);
+}
+</script>
+</body>
+</html>
