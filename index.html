@@ -93,6 +93,22 @@
   .card .rel { font-size:12.5px; color:#444; margin-top:5px; line-height:1.45; }
   .card .rel b { color:#111; font-weight:600; }
   .card .tag { display:inline-block; font-size:11px; border:1px dashed #111; border-radius:6px; padding:0 5px; margin-left:4px; }
+  /* Technical-elective criteria pop-up */
+  .crit { width:min(640px, calc(100vw - 32px)); max-height:min(80vh, 720px); padding:0; border:0; border-radius:12px;
+          box-shadow:0 18px 48px rgba(0,0,0,.3); color:#111; background:#fff; }
+  .crit::backdrop { background:rgba(20,18,18,.45); }
+  .crit .hd { position:sticky; top:0; display:flex; align-items:flex-start; gap:12px; padding:16px 18px 12px;
+              background:#fff; border-bottom:3px solid #a0522b; }
+  .crit h2 { margin:0; font-size:17px; line-height:1.3; flex:1; }
+  .crit .close { font:inherit; font-size:22px; line-height:1; border:0; background:none; cursor:pointer; padding:2px 6px; border-radius:6px; color:#444; }
+  .crit .close:hover { background:#f2f0f0; }
+  .crit .bd { padding:12px 18px 6px; font-size:14.5px; line-height:1.55; }
+  .crit .bd ul { padding-left:22px; margin:6px 0; } .crit .bd li { margin:3px 0; }
+  .crit .bd p { margin:0 0 10px; }
+  .crit .ft { padding:10px 18px 16px; font-size:12.5px; color:#555; display:flex; flex-wrap:wrap; gap:6px 14px; justify-content:space-between; }
+  .crit .ft a { color:#86323e; font-weight:600; }
+  .info .critlink { font:inherit; font-weight:600; color:#86323e; background:none; border:0; padding:0; cursor:pointer;
+                    text-decoration:underline; text-underline-offset:2px; }
   @media (max-width: 900px) {
     .chartwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -16px; padding:0 16px 6px; }
     #plan { min-width:1050px; }
@@ -120,7 +136,7 @@
     .legend .key { font-size:10pt !important; }
     .legend .note { flex-basis:auto !important; margin-left:auto !important; }
     .cats { padding:0 4mm !important; font-size:8pt !important; gap:1mm 3.5mm !important; flex-wrap:nowrap !important; white-space:nowrap; }
-    .toolbar, .info, .tip, .swipe, .listview { display:none !important; }
+    .toolbar, .info, .tip, .swipe, .listview, .crit { display:none !important; }
     .chartwrap, body.list .chartwrap { display:block !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
     .legend, body.list .legend { display:flex !important; }
     #plan { min-width:0 !important; }
@@ -194,6 +210,11 @@
   </div>
 </div>
 <div class="tip" id="tip" role="tooltip"></div>
+<dialog class="crit" id="critDlg" aria-labelledby="critTitle">
+  <div class="hd"><h2 id="critTitle">Technical elective criteria</h2><button type="button" class="close" aria-label="Close">×</button></div>
+  <div class="bd" id="critBody"></div>
+  <div class="ft"><span id="critDate"></span><a id="critSrc" target="_blank" rel="noopener">Open on the ISE website ↗</a></div>
+</dialog>
 
 <script>
 // ---------- Layout ----------
@@ -619,7 +640,7 @@ document.querySelectorAll(".course").forEach(g => {
   g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(selected === id ? null : id); } });
 });
 svg.addEventListener("click", () => select(null));
-document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!saveMenu.hidden) closeMenu(); else select(null); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (document.getElementById("critDlg").open) return; if (!saveMenu.hidden) closeMenu(); else select(null); } });
 
 // Print / Save menu
 const saveBtn = document.getElementById("saveBtn"), saveMenu = document.getElementById("saveMenu");
@@ -640,7 +661,7 @@ saveBtn.addEventListener("click", e => {
 saveMenu.addEventListener("click", e => { if (e.target.closest("button")) closeMenu(); });
 document.addEventListener("click", e => { if (!e.target.closest(".savemenu")) closeMenu(); });
 document.getElementById("printBtn").addEventListener("click", () => window.print());
-info.addEventListener("click", e => { if (e.target.closest(".x")) select(null); });
+info.addEventListener("click", e => { if (e.target.closest(".x")) select(null); if (e.target.closest(".critlink")) openCriteria(); });
 
 // ---------- Vector export: full page (title, logo, chart, key) as one standalone SVG ----------
 function buildExportSVG() {
@@ -804,6 +825,7 @@ function select(id) {
     <span class="muted">· ${credLine(id)}</span><br>
     ${themeChip(id)}
     ${LEARN[id] ? `<div class="learn">${esc(LEARN[id])}</div>` : "<br>"}
+    ${id === "xexxx" ? `<div class="learn" style="font-style:normal"><button type="button" class="critlink">See which courses count as technical electives</button></div>` : ""}
     <span style="color:#1f6fb2">■</span> <b>Requires:</b> ${req || "None"}${list(pre, "c") ? ` · <b>Co-requisite:</b> ${list(pre, "c")}` : ""}
     <span class="muted">(${anc.size} course${anc.size === 1 ? "" : "s"} in the full chain)</span><br>
     <span style="color:#d9731a">■</span> <b>Directly unlocks:</b> ${post.map(x => code(x[0]) + (x[1] === "c" ? " (co-req)" : "")).join(", ") || "Nothing"}
@@ -816,6 +838,58 @@ function badge(g, x, y, n) {
   el("circle", { cx:x, cy:y, r:7.5, fill:"#111", stroke:"#fff", "stroke-width":1.2 }, g);
   el("text", { x, y:y+3.8, "text-anchor":"middle", fill:"#fff", "font-size":10, "font-weight":700, "font-style":"italic" }, g, n);
 }
+
+// ---------- Technical-elective criteria pop-up ----------
+// Copy built into this file (works offline, on claude.ai and in previews). On GitHub Pages the page
+// also loads criteria.json, which a weekly GitHub Action refreshes from the ISE website.
+const CRITERIA_SNAPSHOT = {"title": "Technical Electives Criteria for ISE Undergraduate Programs (Updated 241)", "source": "https://ise.kfupm.edu.sa/academics/undergraduate-program/degree-plan-new/list-of-technical-electives-for-ise-undergraduate-program/", "html": "<p>Below is the text for the criteria of technical electives:<\/p><p>As long as pre-requisites are met, and cross-listed courses (courses that are not to be taken for credit with courses on the ISE degree plan, e.g., STAT 319) are observed, a student can take any course that satisfies the following requirements:<\/p><ul><li>Course must be 300 or 400-level (i.e., 3xx or 4xx).<\/li><li>Course must be 3 credit hours.<\/li><li>Course must be taken for a letter grade.<\/li><li>Course must be offered by any of the following colleges/departments:<ul><li>College of Engineering and Physics<\/li><li>College of Computing and Mathematics (excluding ISE)<\/li><li>College of Petroleum Engineering &amp; Geosciences<\/li><li>College of Chemicals and Materials<\/li><li>Department of Architectural Engineering and Construction Management<\/li><li>Department of Civil and Environmental Engineering.<\/li><\/ul><\/li><li>The following exclusions/restrictions must be respected:<ul><li>ISE 440 and SWE 387 cannot both be taken for credit.<\/li><li>CE 318 cannot be counted as a technical elective.<\/li><li>MATH 371 cannot be counted as a technical elective.<\/li><\/ul><\/li><li><b>Please note that SWE 387 is currently major-restricted since it is being prioritized for SWE students. Do not consider it in your SEP.<\/b><\/li><li><b>We recommend that students consult with their advisors regarding courses they are planning on taking.<\/b><\/li><\/ul>", "updated": "2026-11-11"};
+let criteria = CRITERIA_SNAPSHOT, criteriaLoaded = false;
+const critDlg = document.getElementById("critDlg");
+// Only simple formatting tags from the source page are kept; everything else becomes plain text
+function safeCriteriaHTML(src) {
+  const doc = new DOMParser().parseFromString("<div>" + src + "</div>", "text/html");
+  const OK = new Set(["P", "UL", "OL", "LI", "B", "STRONG", "I", "EM", "BR", "A"]);
+  const clean = node => {
+    [...node.childNodes].forEach(n => {
+      if (n.nodeType === 1) {
+        if (!OK.has(n.tagName)) { n.replaceWith(document.createTextNode(n.textContent)); return; }
+        const href = n.tagName === "A" ? n.getAttribute("href") : null;
+        [...n.attributes].forEach(a => n.removeAttribute(a.name));
+        if (href && /^https:\/\//.test(href)) { n.setAttribute("href", href); n.setAttribute("target", "_blank"); n.setAttribute("rel", "noopener"); }
+        clean(n);
+      } else if (n.nodeType !== 3) n.remove();
+    });
+  };
+  const root = doc.body.firstChild; clean(root); return root.innerHTML;
+}
+function renderCriteria() {
+  document.getElementById("critTitle").textContent = (criteria.title || "Technical elective criteria").replace(/^Technical Electives Criteria for ISE Undergraduate Programs/, "Technical Elective Criteria");
+  document.getElementById("critBody").innerHTML = safeCriteriaHTML(criteria.html || "");
+  const d = criteria.updated ? new Date(criteria.updated + "T00:00:00Z") : null;
+  document.getElementById("critDate").textContent = d && !isNaN(d) ?
+    "Copied from the ISE website (checked weekly) · " + d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", timeZone:"UTC" }) : "From the ISE website";
+  document.getElementById("critSrc").href = criteria.source || document.querySelector(".note a").href;
+}
+function loadLatestCriteria() {
+  if (criteriaLoaded || !/^https?:$/.test(location.protocol) || !window.fetch) return;
+  criteriaLoaded = true;
+  fetch("criteria.json", { cache:"no-cache" }).then(r => r.ok ? r.json() : null).then(j => {
+    if (j && typeof j.html === "string" && /Course must/.test(j.html)) { criteria = j; if (critDlg.open) renderCriteria(); }
+  }).catch(() => {});
+}
+function openCriteria() {
+  if (!critDlg.showModal) return false;           // very old browsers: follow the link instead
+  renderCriteria(); loadLatestCriteria();
+  critDlg.showModal(); critDlg.querySelector(".close").focus();
+  return true;
+}
+document.querySelector(".note a").addEventListener("click", e => {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;   // keep "open in new tab"
+  if (openCriteria()) e.preventDefault();
+});
+critDlg.querySelector(".close").addEventListener("click", () => critDlg.close());
+critDlg.addEventListener("click", e => { if (e.target === critDlg) critDlg.close(); });   // click outside the box
+loadLatestCriteria();
 </script>
 </body>
 </html>
