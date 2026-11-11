@@ -628,7 +628,14 @@ saveBtn.addEventListener("click", e => {
   e.stopPropagation();
   const open = saveMenu.hidden;
   saveMenu.hidden = !open; saveBtn.setAttribute("aria-expanded", String(open));
-  if (open) saveMenu.querySelector("button").focus();
+  if (open) {
+    // Keep the whole menu on screen: start under the button, slide left only as far as needed
+    saveMenu.style.right = "auto"; saveMenu.style.left = "0";
+    const vw = document.documentElement.clientWidth, m = saveMenu.getBoundingClientRect();
+    const shift = Math.min(Math.max(0, m.right - (vw - 12)), m.left - 12);
+    if (shift > 0) saveMenu.style.left = -shift + "px";
+    saveMenu.querySelector("button").focus();
+  }
 });
 saveMenu.addEventListener("click", e => { if (e.target.closest("button")) closeMenu(); });
 document.addEventListener("click", e => { if (!e.target.closest(".savemenu")) closeMenu(); });
