@@ -46,10 +46,9 @@
   .card .learn { display:block; font-size:12.5px; color:#333; margin:5px 0 0; line-height:1.4; }
   .card .chip { font-size:11px; margin-top:5px; }
   /* Course details: a floating card, so opening it never moves the chart */
-  .info { position:fixed; bottom:16px; width:min(440px, calc(100vw - 32px)); z-index:20; margin:0;
+  .info { position:fixed; top:16px; left:16px; width:min(400px, calc(100vw - 32px)); z-index:20; margin:0;
           padding:12px 40px 12px 14px; border-left:4px solid #86323e; background:#fff; border-radius:10px;
           box-shadow:0 10px 32px rgba(0,0,0,.25); font-size:14px; line-height:1.5; max-height:45vh; overflow:auto; }
-  .info.left { left:16px; right:auto; } .info.right { right:16px; left:auto; }
   .info[hidden] { display:none; }
   .info b.code { font-size:16px; }
   .info .muted { color:#555; }
@@ -119,7 +118,7 @@
     .chartwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -16px; padding:0 16px 6px; }
     #plan { min-width:1050px; }
     .swipe { display:block; }
-    .info, .info.left, .info.right { position:fixed; left:8px; right:8px; bottom:8px; width:auto; margin:0; z-index:20; background:#fff;
+    .info { position:fixed; left:8px !important; right:8px; top:auto !important; bottom:8px; width:auto; margin:0; z-index:20; background:#fff;
             box-shadow:0 6px 24px rgba(0,0,0,.28); padding-right:40px; max-height:45vh; overflow:auto; font-size:13.5px; }
     .info .x { display:block; }
     .listview { padding: 0 0 12px; }
@@ -857,21 +856,37 @@ function select(id) {
   info.hidden = false;
   placeInfo();
 }
-// Dock the details card in whichever bottom corner hides fewer of the highlighted courses
-// (ties: the corner opposite the clicked course). Re-run on scroll/resize so it stays clear.
+// Float the details card beside the clicked course: a clear gap away from it, inside the window,
+// and on the side that hides the fewest highlighted (prerequisite / unlocked) courses.
+// Re-run on scroll/resize so it follows the course. Phones keep the full-width bottom card (CSS).
+const PHONE = matchMedia("(max-width: 900px)");
 function placeInfo() {
   if (info.hidden || !selected) return;
-  const boxes = [...document.querySelectorAll(".course.sel, .course.pre, .course.post")].map(g => g.getBoundingClientRect());
-  const covered = side => {
-    info.classList.toggle("left", side === "left"); info.classList.toggle("right", side === "right");
-    const r = info.getBoundingClientRect();
-    return boxes.filter(b => b.right > r.left && b.left < r.right && b.bottom > r.top && b.top < r.bottom).length;
-  };
-  const col = (COURSES.find(c => c[0] === selected) || [])[4] || 0;
-  const pref = col >= 5 ? "left" : "right", other = pref === "left" ? "right" : "left";
-  const a = covered(pref), b = covered(other);
-  const side = b < a ? other : pref;
-  info.classList.toggle("left", side === "left"); info.classList.toggle("right", side === "right");
+  if (PHONE.matches) { info.style.left = info.style.top = ""; return; }
+  const g = document.querySelector(`.course[data-id="${selected}"]`);
+  if (!g) return;
+  const c = g.getBoundingClientRect(), w = info.offsetWidth, h = info.offsetHeight;
+  const vw = document.documentElement.clientWidth, vh = innerHeight, M = 12, GAP = 22;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi));
+  const others = [...document.querySelectorAll(".course.pre, .course.post")].map(n => n.getBoundingClientRect());
+  const hit = (r, b, pad = 0) => b.right + pad > r.left && b.left - pad < r.right && b.bottom + pad > r.top && b.top - pad < r.bottom;
+  // Spots around the course: beside it (top-, centre-, bottom-aligned) or above/below it (left-, centre-, right-aligned)
+  const ys = [c.top + c.height / 2 - h / 2, c.top - 8, c.bottom + 8 - h];
+  const xs = [c.left + c.width / 2 - w / 2, c.left - 8, c.right + 8 - w];
+  const spots = [];
+  ys.forEach(y => { spots.push(["right", c.right + GAP, y]); spots.push(["left", c.left - GAP - w, y]); });
+  xs.forEach(x => { spots.push(["below", x, c.bottom + GAP]); spots.push(["above", x, c.top - GAP - h]); });
+  const cands = spots.map(([side, x, y], order) => {
+    const fitsX = x >= M && x + w <= vw - M, fitsY = y >= M && y + h <= vh - M;
+    const cx = clamp(x, M, vw - w - M), cy = clamp(y, M, Math.max(M, vh - h - M));
+    const r = { left:cx, top:cy, right:cx + w, bottom:cy + h };
+    const score = (hit(r, c, GAP - 4) ? 1000 : 0)              // never sit on (or right against) the course
+                + ((side === "right" || side === "left") ? (fitsX ? 0 : 200) : (fitsY ? 0 : 200))
+                + others.filter(b => hit(r, b)).length * 10   // keep the traced chain visible
+                + order * 0.1;                                // ties: prefer beside, then below/above
+    return { cx, cy, score };
+  }).sort((a, b) => a.score - b.score);
+  info.style.left = cands[0].cx + "px"; info.style.top = cands[0].cy + "px";
 }
 
 function badge(g, x, y, n) {
