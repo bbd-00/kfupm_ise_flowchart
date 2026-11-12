@@ -45,7 +45,11 @@
   .learn { margin:6px 0 4px; font-style:italic; }
   .card .learn { display:block; font-size:12.5px; color:#333; margin:5px 0 0; line-height:1.4; }
   .card .chip { font-size:11px; margin-top:5px; }
-  .info { margin: 0 40px 8px; padding:10px 14px; border-left:4px solid #86323e; background:#f6f4f4; border-radius:6px; font-size:14px; line-height:1.5; }
+  /* Course details: a floating card, so opening it never moves the chart */
+  .info { position:fixed; bottom:16px; width:min(440px, calc(100vw - 32px)); z-index:20; margin:0;
+          padding:12px 40px 12px 14px; border-left:4px solid #86323e; background:#fff; border-radius:10px;
+          box-shadow:0 10px 32px rgba(0,0,0,.25); font-size:14px; line-height:1.5; max-height:45vh; overflow:auto; }
+  .info.left { left:16px; right:auto; } .info.right { right:16px; left:auto; }
   .info[hidden] { display:none; }
   .info b.code { font-size:16px; }
   .info .muted { color:#555; }
@@ -67,8 +71,7 @@
   .cats span.c { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
   .cats i { width:20px; height:12px; border-radius:4px; display:inline-block; flex:none; }
   html:not(.js) .toolbar { display:none; }
-  .info { position:relative; }
-  .info .x { display:none; position:absolute; top:4px; right:8px; border:0; background:none; font-size:24px; line-height:1; cursor:pointer; color:#444; padding:4px 6px; }
+  .info .x { display:block; position:absolute; top:4px; right:8px; border:0; background:none; font-size:24px; line-height:1; cursor:pointer; color:#444; padding:4px 6px; }
   .views { display:inline-flex; border:1px solid #bbb; border-radius:8px; overflow:hidden; }
   .toolbar .views button { border:0; border-radius:0; }
   .toolbar .views button[aria-pressed="true"] { background:#1f1d1d; color:#fff; }
@@ -116,7 +119,7 @@
     .chartwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -16px; padding:0 16px 6px; }
     #plan { min-width:1050px; }
     .swipe { display:block; }
-    .info { position:fixed; left:8px; right:8px; bottom:8px; margin:0; z-index:20; background:#fff;
+    .info, .info.left, .info.right { position:fixed; left:8px; right:8px; bottom:8px; width:auto; margin:0; z-index:20; background:#fff;
             box-shadow:0 6px 24px rgba(0,0,0,.28); padding-right:40px; max-height:45vh; overflow:auto; font-size:13.5px; }
     .info .x { display:block; }
     .listview { padding: 0 0 12px; }
@@ -155,7 +158,7 @@
     .legendbox { margin:12px 0 0; }
     .lrow { grid-template-columns:1fr; gap:6px; padding-top:12px; }
     .lrow .items { gap:6px 18px; }
-    .toolbar { padding: 6px 0 8px; } .info { margin: 0 0 8px; }
+    .toolbar { padding: 6px 0 8px; }
   }
 </style>
 </head>
@@ -852,6 +855,23 @@ function select(id) {
     <span class="muted">(${desc.size} course${desc.size === 1 ? "" : "s"} downstream)</span>`;
   info.insertAdjacentHTML("afterbegin", `<button class="x" type="button" aria-label="Clear selection">×</button>`);
   info.hidden = false;
+  placeInfo();
+}
+// Dock the details card in whichever bottom corner hides fewer of the highlighted courses
+// (ties: the corner opposite the clicked course). Re-run on scroll/resize so it stays clear.
+function placeInfo() {
+  if (info.hidden || !selected) return;
+  const boxes = [...document.querySelectorAll(".course.sel, .course.pre, .course.post")].map(g => g.getBoundingClientRect());
+  const covered = side => {
+    info.classList.toggle("left", side === "left"); info.classList.toggle("right", side === "right");
+    const r = info.getBoundingClientRect();
+    return boxes.filter(b => b.right > r.left && b.left < r.right && b.bottom > r.top && b.top < r.bottom).length;
+  };
+  const col = (COURSES.find(c => c[0] === selected) || [])[4] || 0;
+  const pref = col >= 5 ? "left" : "right", other = pref === "left" ? "right" : "left";
+  const a = covered(pref), b = covered(other);
+  const side = b < a ? other : pref;
+  info.classList.toggle("left", side === "left"); info.classList.toggle("right", side === "right");
 }
 
 function badge(g, x, y, n) {
@@ -909,6 +929,10 @@ document.querySelector(".note a").addEventListener("click", e => {
 });
 critDlg.querySelector(".close").addEventListener("click", () => critDlg.close());
 critDlg.addEventListener("click", e => { if (e.target === critDlg) critDlg.close(); });   // click outside the box
+let placeRaf = 0;
+const schedulePlace = () => { cancelAnimationFrame(placeRaf); placeRaf = requestAnimationFrame(placeInfo); };
+addEventListener("scroll", schedulePlace, { passive:true }); addEventListener("resize", schedulePlace);
+document.querySelector(".chartwrap").addEventListener("scroll", schedulePlace, { passive:true });
 loadLatestCriteria();
 </script>
 </body>
