@@ -29,7 +29,7 @@
   .note a:hover { color:#5e1f2b; }
   .toolbar { display:flex; align-items:center; gap:12px; padding: 6px 40px 8px; font-size:13px; color:#444; flex-wrap:wrap; }
   .toolbar .hint { flex:1; min-width:220px; }
-  .toolbar .sw { display:inline-block; width:18px; height:3px; vertical-align:middle; margin:0 3px 0 6px; border-radius:2px; }
+  .toolbar .sw { display:inline-block; width:18px; height:3px; vertical-align:middle; margin:0 2px; border-radius:2px; }
   .toolbar button { font:inherit; font-weight:600; padding:7px 14px; border:1px solid #bbb; background:#fff; color:#111; border-radius:8px; cursor:pointer; }
   .toolbar button:hover { background:#f2f2f2; }
   .savemenu { position:relative; }
@@ -65,6 +65,8 @@
   .tip { position:fixed; z-index:10; pointer-events:none; background:#1f1d1d; color:#fff; padding:8px 11px; border-radius:8px;
          font-size:13px; line-height:1.4; max-width:280px; box-shadow:0 4px 14px rgba(0,0,0,.25); opacity:0; transition:opacity .1s; }
   .tip.on { opacity:1; }
+  /* Touch screens and phones: no hover title card (a tap opens the full details instead) */
+  @media (hover: none), (pointer: coarse), (max-width: 900px) { .tip { display:none !important; } }
   .tip .t { font-weight:700; }
   .tip .m { color:#cfcfcf; font-size:12px; }
   .cats span.c { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
@@ -172,7 +174,7 @@
   </header>
 
   <div class="toolbar">
-    <div class="hint">Click a course to trace what it requires<span class="sw" style="background:#1f6fb2"></span>and what it unlocks<span class="sw" style="background:#d9731a"></span>. Click again, click empty space or press Esc to clear.</div>
+    <div class="hint">Click a course to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>) and what it unlocks (<span class="sw" style="background:#d9731a"></span>). Click again, click empty space or press Esc to clear.</div>
     <div class="views" role="group" aria-label="View">
       <button type="button" id="vChart" aria-pressed="true">Chart</button>
       <button type="button" id="vList" aria-pressed="false">List</button>
@@ -636,9 +638,11 @@ const credLine = id => {
   return s;
 };
 
+const NO_HOVER = matchMedia("(hover: none), (pointer: coarse), (max-width: 900px)");
 document.querySelectorAll(".course").forEach(g => {
   const id = g.dataset.id;
   g.addEventListener("mouseenter", () => {
+    if (NO_HOVER.matches) return;
     const i = INFO[id] || [];
     tip.innerHTML = `<div class="t">${code(id)}${META[id].o.second ? "/" + META[id].o.second : ""} · ${i[0] || ""}</div>
       <div class="m">${credLine(id)}${META[id].o.dashed ? "<br>Requires junior standing" : ""}</div>`;
@@ -764,8 +768,8 @@ document.getElementById("svgBtn").addEventListener("click", () => {
 
 // Touch devices: no hover / Esc, so word the hint for tapping
 if (matchMedia("(hover: none), (pointer: coarse), (max-width: 900px)").matches) {
-  document.querySelector(".hint").innerHTML = `Tap a course to trace what it requires<span class="sw" style="background:#1f6fb2"></span>
-    and what it unlocks<span class="sw" style="background:#d9731a"></span>. Tap it again or tap × to clear.`;
+  document.querySelector(".hint").innerHTML = `Tap a course to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>)
+    and what it unlocks (<span class="sw" style="background:#d9731a"></span>). Tap it again or tap × to clear.`;
 }
 
 // ---------- List view (semester cards) ----------
