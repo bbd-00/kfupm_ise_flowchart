@@ -186,7 +186,7 @@
   <div class="toolbar">
     <div class="hintbox">
     <span class="badge"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2 L3 13 L6 10 L8.5 15 L10.5 14 L8 9 L12 9 Z" fill="#fff"/></svg>This chart is interactive</span>
-    <div class="hint">Click a course to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>) and what it unlocks (<span class="sw" style="background:#d9731a"></span>). Click again, click empty space or press Esc to clear.</div>
+    <div class="hint">Click a course to see its details (title, credits, lab hours and a short summary of what you will learn) and to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>) and what it unlocks (<span class="sw" style="background:#d9731a"></span>). Click again, click empty space or press Esc to clear.</div>
     </div>
     <div class="views" role="group" aria-label="View">
       <button type="button" id="vChart" aria-pressed="true">Chart</button>
@@ -825,7 +825,7 @@ document.getElementById("svgBtn").addEventListener("click", () => {
 
 // Touch devices: no hover / Esc, so word the hint for tapping
 if (matchMedia("(hover: none), (pointer: coarse), (max-width: 900px)").matches) {
-  document.querySelector(".hint").innerHTML = `Tap a course to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>)
+  document.querySelector(".hint").innerHTML = `Tap a course to see its details (title, credits, lab hours and a short summary of what you will learn) and to trace what it requires (<span class="sw" style="background:#1f6fb2"></span>)
     and what it unlocks (<span class="sw" style="background:#d9731a"></span>). Tap it again or tap × to clear.`;
 }
 
